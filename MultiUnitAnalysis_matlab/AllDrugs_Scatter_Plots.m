@@ -1,19 +1,47 @@
-  %% Load the output structures
-clearvars -except xds_morn & xds_noon & xds & unit_name
+%% Load the output structures
+clear
 clc
 
+% What Monkey Do You Want To Load? ('All', 'Mihili', 'Jango', 'Jaco', 'Pop', 'Pancake')
+Monkey_Choice = strings;
+Monkey_Choice{1} = 'Pop';
+%Monkey_Choice{1} = 'Tot';
+%Monkey_Choice{3} = 'Groot';
+%Monkey_Choice{4} = 'Pancake';
+% Sorted or unsorted (1 vs 0)
+Sorted = 1;
+
+event = 'window_trial_gocue';
+
+Sampling_Params = struct( ...
+    'trial_task', 'PG', ... % Which task do you want ('PG', 'WS', 'KG', 'All')?
+    'trial_sessions', 'All', ... % Individual Sessions or All Sessions? ('Ind' vs 'All')
+    'unit_quality', 'Stable', ... % Unit quality ('All' vs. 'Stable')
+    'ISI_quality', 'All', ... % ISI quality ('All' vs. 'Single')
+    'depth_change', NaN, ... % What change in depth of modulation do you want to observe (# vs NaN)
+    'pref_dir', 'All', ... % What preferred direction do you want to plot(-90, 0, 90, 180, 'All')
+    'depth_min', NaN, ... % What minimum depth of modulation do you want to observe (# vs NaN)
+    'depth_max', NaN, ... % What maximum depth of modulation do you want to observe (# vs NaN)
+    'peaktopeak_min', NaN, ... % What minimum peak to peak amplitude do you want to observe (# vs NaN)
+    'mod_sig', 'All', ... % Unit modulation significance ('All' vs. 'Sig')
+    'depth_sig', 'All', ... % Unit depth change significance ('All' vs. 'Sig')
+    'spike_width', 'All', ... % What spike width ('All', 'Small', 'Medium', 'Large')
+    'post_spike_facil', 'All', ... % What level of post-spike facilitation ('All', 'Weak', 'Moderate', 'Strong')
+    'max_vs_min', 0); % Remove sessions with only a single target? (1 = Yes, 0 = No)
+
 %% Some of the plotting specifications
+
+% Which firing rate phase do you want to plot? ('Baseline', 'Ramp', 'TgtHold', 'Depth')?
+fire_rate_phase = 'Depth';
+
 % Plot each unit or the averages only? (1 = each unit; 0 = averages only)
 each_unit = 0;
-
-% Unit quality ('All', 'Better', 'Best')
-unit_quality = 'All';
 
 % Drug Legend? (1 = Yes, 0 = No)
 drug_leg = 0;
 
 % Save the figures to your desktop? (1 = Yes, 0 = No)
-Save_Figs = 'png';
+Save_Figs = 0;
 
 %% Some variable extraction & definitions
 
@@ -30,15 +58,7 @@ figure
 hold on
 
 % Set the title
-if strcmp(unit_quality, 'All')
-    title('Depth of Modulation: All Units', 'FontSize', title_font_size)
-end
-if strcmp(unit_quality, 'Better')
-    title('Depth of Modulation: Better Units', 'FontSize', title_font_size)
-end
-if strcmp(unit_quality, 'Best')
-    title('Depth of Modulation: Best Units', 'FontSize', title_font_size)
-end
+title('Depth of Modulation:', 'FontSize', title_font_size)
 
 % Label the axes
 xlabel('Morning Depth of Modulation (Hz)', 'FontSize', label_font_size);
@@ -47,68 +67,70 @@ ylabel('Afternoon Depth of Modulation (Hz)', 'FontSize', label_font_size);
 % Set up a struct for the elliptical error information
 ellipsis_specs = zeros(4,4);
 
-for dd = 4:4
+for dd = 1:4
     if dd == 1
         %drug_color = [0.5, 0.5, 1]; % Blue
         drug_color = 'r';
         Drug_Choice = 'Cyp';
-        [~, ~, depth_morn, depth_noon, ~, mpfr_err_morn, ~, mpfr_err_noon, ...
-            ~, ~, nonlin_p_value, fract_contam, ~, ~, ~, all_unit_names] = Fast_Load_Depth(Drug_Choice);
+        [xds_depth_excel, file_names] = Load_Depth_Excel(Drug_Choice, Monkey_Choice, event, Sorted, Sampling_Params);
+        [split_depth_excel, column_names] = Split_Depth_Excel(xds_depth_excel);
     end
     if dd == 2
         drug_color = [0 0.5 0]; % Dark Green
         Drug_Choice = 'Caff';
-        [~, ~, depth_morn, depth_noon, ~, mpfr_err_morn, ~, mpfr_err_noon, ...
-            ~, ~, nonlin_p_value, fract_contam, ~, ~, ~, all_unit_names] = Fast_Load_Depth(Drug_Choice);
+        [xds_depth_excel, file_names] = Load_Depth_Excel(Drug_Choice, Monkey_Choice, event, Sorted, Sampling_Params);
+        [split_depth_excel, column_names] = Split_Depth_Excel(xds_depth_excel);
     end
     if dd == 3
         drug_color = [0 0.5 0]; % Dark Green
         Drug_Choice = 'Lex';
-        [~, ~, depth_morn, depth_noon, ~, mpfr_err_morn, ~, mpfr_err_noon, ...
-            ~, ~, nonlin_p_value, fract_contam, ~, ~, ~, all_unit_names] = Fast_Load_Depth(Drug_Choice);
+        [xds_depth_excel, file_names] = Load_Depth_Excel(Drug_Choice, Monkey_Choice, event, Sorted, Sampling_Params);
+        [split_depth_excel, column_names] = Split_Depth_Excel(xds_depth_excel);
     end
     if dd == 4
         drug_color = [0, 0, 0]; % Black
         Drug_Choice = 'Con';
-        [~, ~, depth_morn, depth_noon, ~, mpfr_err_morn, ~, mpfr_err_noon, ...
-            ~, ~, nonlin_p_value, fract_contam, ~, ~, ~, all_unit_names] = Fast_Load_Depth(Drug_Choice);
+        [xds_depth_excel, file_names] = Load_Depth_Excel(Drug_Choice, Monkey_Choice, event, Sorted, Sampling_Params);
+        [split_depth_excel, column_names] = Split_Depth_Excel(xds_depth_excel);
     end
 
-    %% Put the info from each experiment together
+    %% Reassign variables according to what you're plotting
 
-    % Find the amount of units each experiment uses
-    units_per_experiment = zeros(length(all_unit_names),1);
-    for ii = 1:length(units_per_experiment)
-        units_per_experiment(ii) = length(all_unit_names{ii});
+    if strcmp(fire_rate_phase, 'Baseline')
+        disp('Baseline Firing Rate')
+        fire_rate_morn = split_depth_excel{strcmp(column_names, 'bsfr_morn')};
+        fire_rate_noon = split_depth_excel{strcmp(column_names, 'bsfr_noon')};
+        fire_rate_err_morn = split_depth_excel{strcmp(column_names, 'bsfr_err_morn')};
+        fire_rate_err_noon = split_depth_excel{strcmp(column_names, 'bsfr_err_noon')};
     end
-    total_units = sum(units_per_experiment);
-
-    %% Concatenate all the information
-    all_trials_depth_morn = zeros(length(total_units),1);
-    all_trials_mpfr_err_morn = zeros(length(total_units),1);
-    all_trials_depth_noon = zeros(length(total_units),1);
-    all_trials_mpfr_err_noon = zeros(length(total_units),1);
-    all_trials_sort_p_value = zeros(length(total_units),1);
-    all_trials_merged_ISI_mode = zeros(length(total_units),1);
-    cc = 1;
-    for xx = 1:length(all_unit_names)
-        for jj = 1:length(all_unit_names{xx})
-            all_trials_depth_morn(cc,1) = depth_morn{xx}(jj);
-            all_trials_mpfr_err_morn(cc,1) = mpfr_err_morn{xx}(jj);
-            all_trials_depth_noon(cc,1) = depth_noon{xx}(jj);
-            all_trials_mpfr_err_noon(cc,1) = mpfr_err_noon{xx}(jj);
-            all_trials_sort_p_value(cc,1) = nonlin_p_value{xx}(jj);
-            all_trials_merged_ISI_mode(cc,1) = fract_contam{xx}(jj);
-            cc = cc + 1;
-        end
+    if strcmp(fire_rate_phase, 'Ramp')
+        disp('Ramp Phase')
+        fire_rate_morn = split_depth_excel{strcmp(column_names, 'ramp_morn')};
+        fire_rate_noon = split_depth_excel{strcmp(column_names, 'ramp_noon')};
+        fire_rate_err_morn = split_depth_excel{strcmp(column_names, 'ramp_err_morn')};
+        fire_rate_err_noon = split_depth_excel{strcmp(column_names, 'ramp_err_noon')};
+    end
+    if strcmp(fire_rate_phase, 'TgtHold')
+        disp('TgtHold Phase')
+        fire_rate_morn = split_depth_excel{strcmp(column_names, 'TgtHold_morn')};
+        fire_rate_noon = split_depth_excel{strcmp(column_names, 'TgtHold_noon')};
+        fire_rate_err_morn = split_depth_excel{strcmp(column_names, 'TgtHold_err_morn')};
+        fire_rate_err_noon = split_depth_excel{strcmp(column_names, 'TgtHold_err_noon')};
+    end
+    if strcmp(fire_rate_phase, 'Depth')
+        disp('Depth of Modulation')
+        fire_rate_morn = split_depth_excel{strcmp(column_names, 'depth_morn')};
+        fire_rate_noon = split_depth_excel{strcmp(column_names, 'depth_noon')};
+        fire_rate_err_morn = split_depth_excel{strcmp(column_names, 'mp_err_morn')};
+        fire_rate_err_noon = split_depth_excel{strcmp(column_names, 'mp_err_noon')};
     end
 
     %% Plot the elliptical error probable
 
     % The percent of points you want
     err_percent = .5;
-    X = all_trials_depth_morn';
-    Y = all_trials_depth_noon';
+    X = fire_rate_morn{1,1}';
+    Y = fire_rate_noon{1,1}';
 
     [meanX, meanY, ~, ~, ~, X_ellipse, Y_ellipse] = ... 
         Ellip_Err_Prob(X, Y, err_percent);
@@ -130,18 +152,6 @@ for dd = 4:4
 
     if isequal(each_unit, 1)
         for jj = 1:total_units
-
-            % Skip the function if the unit is bad
-            if strcmp(unit_quality, 'Best')
-                if round(all_trials_merged_ISI_mode(jj)) <= 5 || all_trials_sort_p_value(jj) <= 0.05
-                    continue
-                end
-            end
-            if strcmp(unit_quality, 'Better')
-                if round(all_trials_merged_ISI_mode(jj)) <= 5 && all_trials_sort_p_value(jj) <= 0.05
-                    continue
-                end
-            end
 
             % If the ISI's mode is < 5
             if round(all_trials_merged_ISI_mode(jj,1)) <= 5

@@ -1,22 +1,24 @@
-function [bsfr_morn, bsfr_noon, depth_morn, depth_noon, bsfr_err_morn, mp_err_morn, bsfr_err_noon, mp_err_noon, ...
-    depth_p_value_t_test, wave_p_value, nonlin_p_value, fract_contam, pref_dir, Drug_Dose, all_unit_names] = ...
-    Multi_Session_Depth(Monkey, event, Drug_Choice, Save_Excel)
+function Multi_Session_Depth(Monkey, event, Drug_Choice, Save_Excel)
 
 %% Display the function being used
-disp('Multi-Experiment Unit Results:');
+disp('Multi-Experiment Depth Results:');
 
 %% Some of the analysis specifications
 
-% What minimum depth of modulation? (#, or NaN)
-Depth_Minimum = NaN;
-
-% What minimum signal to noise ration? (#, or NaN)
+% What minimum signal to noise ration? (# or NaN)
 SNR_Minimum = 5;
 
 % Which targets do you want the mnovement phase firing rate calculated from? ('Max', 'Min', 'All')
 tgt_mpfr = 'Max';
 
-Save_Path = strcat('C:\Users\rhpow\Documents\Work\Northwestern\Excel_Data\', event, '\', tgt_mpfr, '_Targets\');
+% Sorted or unsorted (1 vs 0)
+Sorted = 0;
+
+if isequal(Sorted, 1)
+    Save_Path = strcat('C:\Users\rhpow\Documents\Work\Northwestern\Excel_Data\', event, '\Sorted\');
+else
+    Save_Path = strcat('C:\Users\rhpow\Documents\Work\Northwestern\Excel_Data\', event, '\Unsorted\');
+end
 
 % Load the file information
 [Dates, Tasks, Drug_Dose] = File_Details(Monkey, Drug_Choice);
@@ -25,33 +27,66 @@ Save_Path = strcat('C:\Users\rhpow\Documents\Work\Northwestern\Excel_Data\', eve
 
 % Morning baseline firing rate
 bsfr_morn = struct([]);
-% Morning depth
-depth_morn = struct([]);
 % Afternoon baseline firing rate
 bsfr_noon = struct([]);
+
+% Morning depth
+depth_morn = struct([]);
 % Afternoon depth
 depth_noon = struct([]);
     
 % Morning error
 bsfr_err_morn = struct([]);
-mp_err_morn = struct([]);
+depth_err_morn = struct([]);
 % Afternoon error
 bsfr_err_noon = struct([]);
-mp_err_noon = struct([]);
+depth_err_noon = struct([]);
 
-% Depth of modulation t-test
+% Modulation statistics
+mod_p_value_t_test_morn = struct([]);
+mod_p_value_wilcoxon_morn = struct([]);
+mod_p_value_t_test_noon = struct([]);
+mod_p_value_wilcoxon_noon = struct([]);
+% Baseline firing rate statistics
+bsfr_p_value_t_test = struct([]);
+bsfr_p_value_wilcoxon = struct([]);
+bsfr_effect_perc = struct([]);
+bsfr_effect_cohen_d = struct([]);
+% Depth of modulation statistics
 depth_p_value_t_test = struct([]);
 depth_p_value_wilcoxon = struct([]);
+depth_effect_perc = struct([]);
+depth_effect_cohen_d = struct([]);
 
-% Wave shape t-test
+% Signal to noise ratio
+wave_sigtonoise = struct([]);
+nonlin_sigtonoise = struct([]);
+% Peak to peak amplitude
+wave_peaktopeak = struct([]);
+nonlin_peaktopeak = struct([]);
+% Wave shape t-tests
 wave_p_value = struct([]);
-% Nonlinear energy t-test
 nonlin_p_value = struct([]);
+% Spike Width
+spike_width = struct([]);
+% Repolarization Time
+repol_time = struct([]);
 % Fractional Contamination
 fract_contam = struct([]);
 
 % Preferred Direction
-pref_dir = struct([]);
+all_units_pref_dir = struct([]);
+% Target center
+all_units_target = struct([]);
+% Alignment times
+alignment_morn = struct([]);
+alignment_noon = struct([]);
+
+% Post Spike Facilitation
+post_spike_facil = struct([]);
+
+% Reaction Time
+rxn_time = struct([]);
 
 % Unit Names
 all_unit_names = struct([]);
@@ -63,19 +98,31 @@ num_targets = struct([]);
 for xx = 1:length(Dates)
     
     % Load the relevant xds file
-    xds_morn = Load_XDS(Monkey, Dates{xx,1}, Tasks{xx,1}, 'Morn');
-    xds_noon = Load_XDS(Monkey, Dates{xx,1}, Tasks{xx,1}, 'Noon');
+    xds_morn = Load_XDS(Monkey, Dates{xx,1}, Tasks{xx,1}, Sorted, 'Morn');
+    xds_noon = Load_XDS(Monkey, Dates{xx,1}, Tasks{xx,1}, Sorted, 'Noon');
 
     % Process the xds files
-    if strcmp(Tasks{xx,1}, 'PG')
-        Match_The_Targets = 1;
-    else
-        Match_The_Targets = 0;
-    end
+    Match_The_Targets = 0;
     [xds_morn, xds_noon] = Process_XDS(xds_morn, xds_noon, Match_The_Targets);
+
+    %[xds_morn] = Subsample_Reaction_Outliers(xds_morn);
+    %[xds_noon] = Subsample_Reaction_Outliers(xds_noon);
 
     % Set the succesful unit counter
     cc = 0;
+
+    %% Find the mean reaction time
+
+    % Which task metric? 'Rxn_Time', 'Trial_Length'
+    Task_Metric = 'Rxn_Time';
+
+    [rxn_times] = Task_Metric_ViolinPlot(xds_morn, xds_noon, Task_Metric, 0, 0);
+
+    if length(rxn_times) > 1
+        rxn_time{xx,1} = mean(rxn_times);
+    else
+        rxn_time{xx,1} = rxn_times;
+    end
 
     %% Loop through the units  
     for jj = 1:length(xds_morn.unit_names)
@@ -89,18 +136,57 @@ for xx = 1:length(Dates)
             return
         end
 
+        %% Check if the unit is stable
+        
+        [wave_peak_to_peak, wave_spike_width, wave_repol_time, wave_sort_metric] = ...
+            WaveShapes_Morn_v_Noon(xds_morn, xds_noon, unit_name, 0, 0);
+        if isnan(wave_sort_metric)
+            % If the unit doesn't exist or has less than 1000 spikes
+            continue
+        end
+        [nonlin_peak_to_peak, ~, nonlin_sort_metric] = NonLinearEnergy_Morn_v_Noon(xds_morn, xds_noon, unit_name, 0, 0);
+
+        %% Check if the unit's SNR is below the defined minimum
+        
+        [wave_SNR_matrix_morn] = SignalToNoise(xds_morn, unit_name, 'Wave');
+        wave_SNR_morn = wave_SNR_matrix_morn{2,1};
+        [wave_SNR_matrix_noon] = SignalToNoise(xds_noon, unit_name, 'Wave');
+        wave_SNR_noon = wave_SNR_matrix_noon{2,1};
+        wave_sig_to_noise = (wave_SNR_morn + wave_SNR_noon)/2;
+        if ~isnan(SNR_Minimum)
+            if wave_SNR_morn <= SNR_Minimum || wave_SNR_noon <= SNR_Minimum
+                continue
+            end
+        end
+
+        [nonlin_SNR_matrix_morn] = SignalToNoise(xds_morn, unit_name, 'Nonlin');
+        nonlin_SNR_morn = nonlin_SNR_matrix_morn{2,1};
+        [nonlin_SNR_matrix_noon] = SignalToNoise(xds_noon, unit_name, 'Nonlin');
+        nonlin_SNR_noon = nonlin_SNR_matrix_noon{2,1};
+        nonlin_sig_to_noise = (nonlin_SNR_morn + nonlin_SNR_noon)/2;
+
+        %% Check if the unit is single or multi
+
+        [Fractional_Contam, ~] = InterstimulusInterval_Morn_v_Noon(xds_morn, xds_noon, unit_name, 0, 0);
+
+        [fract_contam_morn, ~] = InterstimulusInterval(xds_morn, unit_name, 0, 0);
+        [fract_contam_noon, ~] = InterstimulusInterval(xds_noon, unit_name, 0, 0);
+
+        % Skip the unit if the fract_contam changes between sessions
+        if abs(fract_contam_noon - fract_contam_morn) >= 0.5
+            continue
+        end
+
         %% Get the baseline firing rates
-        [~, ~, pertrial_bsfr_morn] = ... 
+        [avg_bsfr_morn, ~, err_bsfr_morn, pertrial_bsfr_morn] = ... 
             BaselineFiringRate(xds_morn, unit_name);
-        [~, ~, pertrial_bsfr_noon] = ... 
+        [avg_bsfr_noon, ~, err_bsfr_noon, pertrial_bsfr_noon] = ... 
             BaselineFiringRate(xds_noon, unit_name);
 
         %% Get the movement phase firing rates
-        
-        disp('Morning')
+
         [~, ~, pertrial_mpfr_morn] = ...
             EventPeakFiringRate(xds_morn, unit_name, event);
-        disp('Afternoon')
         [~, ~, pertrial_mpfr_noon] = ... 
             EventPeakFiringRate(xds_noon, unit_name, event);
 
@@ -129,113 +215,77 @@ for xx = 1:length(Dates)
         pertrial_depth_morn = struct([]);
         pertrial_depth_noon = struct([]);
         for ii = 1:length(pertrial_mpfr_morn)
-            pertrial_depth_morn{ii,1} = pertrial_mpfr_morn{ii,1} - mean(pertrial_bsfr_morn{1,1});
-            pertrial_depth_noon{ii,1} = pertrial_mpfr_noon{ii,1} - mean(pertrial_bsfr_noon{1,1});
+            pertrial_depth_morn{ii,1} = pertrial_mpfr_morn{ii,1} - avg_bsfr_morn(1,1);
+            pertrial_depth_noon{ii,1} = pertrial_mpfr_noon{ii,1} - avg_bsfr_noon(1,1);
         end
         
-        %% Finding the average & standard error of the depth of modulation & baseline firing rates
+        %% Find the mean & standard error of the depth of modulation
 
-        avg_bsfr_morn = zeros(length(pertrial_mpfr_morn),1);
         avg_depth_morn = zeros(length(pertrial_mpfr_morn),1);
-        err_bsfr_morn = zeros(length(pertrial_mpfr_morn),1);
-        err_depth_morn = zeros(length(pertrial_mpfr_morn),1);
-        avg_bsfr_noon = zeros(length(pertrial_mpfr_noon),1);
         avg_depth_noon = zeros(length(pertrial_mpfr_noon),1);
+        err_depth_morn = zeros(length(pertrial_mpfr_morn),1);
         err_depth_noon = zeros(length(pertrial_mpfr_noon),1);
-        err_bsfr_noon = zeros(length(pertrial_mpfr_noon),1);
         for ii = 1:length(avg_depth_morn)
-            avg_bsfr_morn(ii,1) = mean(pertrial_bsfr_morn{1,1});
             avg_depth_morn(ii,1) = mean(pertrial_depth_morn{ii,1});
-            err_bsfr_morn(ii,1) = std(pertrial_bsfr_morn{1,1}) / ...
-                sqrt(length(pertrial_bsfr_morn{1,1}));
+            avg_depth_noon(ii,1) = mean(pertrial_depth_noon{ii,1});
             err_depth_morn(ii,1) = std(pertrial_depth_morn{ii,1}) / ...
                 sqrt(length(pertrial_depth_morn{ii,1}));
-            avg_bsfr_noon(ii,1) = mean(pertrial_bsfr_noon{1,1});
-            avg_depth_noon(ii,1) = mean(pertrial_depth_noon{ii,1});
-            err_bsfr_noon(ii,1) = std(pertrial_bsfr_noon{1,1}) / ...
-                sqrt(length(pertrial_bsfr_noon{1,1}));
             err_depth_noon(ii,1) = std(pertrial_depth_noon{ii,1}) / ...
                 sqrt(length(pertrial_depth_noon{ii,1}));
         end
 
         %% Only look at the preferred direction
-        pref_dir_morn = EventPreferredDirection(xds_morn, unit_name, event, tgt_mpfr);
-        pref_dir_noon = pref_dir_morn;
-        %pref_dir_noon = EventPreferredDirection(xds_noon, unit_name, event, tgt_mpfr);
+        [pref_dir] = PreferredDirection_Morn_v_Noon(xds_morn, xds_noon, unit_name, event, tgt_mpfr);
 
-        pref_dir_max_tgt_morn = max(target_centers_morn(target_dirs_morn == pref_dir_morn));
-        pref_dir_min_tgt_morn = min(target_centers_morn(target_dirs_morn == pref_dir_morn));
-        if isempty(pref_dir_max_tgt_morn) || isempty(pref_dir_min_tgt_morn)
-            disp('No targets in the preferred direction!')
-            continue
-        end
-
-        pref_dir_max_tgt_noon = max(target_centers_noon(target_dirs_noon == pref_dir_noon));
-        pref_dir_min_tgt_noon = min(target_centers_noon(target_dirs_noon == pref_dir_noon));
-        if isempty(pref_dir_max_tgt_noon) || isempty(pref_dir_min_tgt_noon)
-            disp('No targets in the preferred direction!')
-            continue
-        end
-        
-        %% Look at the maximum or minimum targets if not using all targets
         if strcmp(tgt_mpfr, 'Max')
-            tgt_bsfr_morn = avg_bsfr_morn(target_centers_morn == pref_dir_max_tgt_morn);
-            tgt_bsfr_noon = avg_bsfr_noon(target_centers_noon == pref_dir_max_tgt_noon);
-    
-            tgt_depth_morn = avg_depth_morn(target_centers_morn == pref_dir_max_tgt_morn);
-            tgt_depth_noon = avg_depth_noon(target_centers_noon == pref_dir_max_tgt_noon);
-    
-            tgt_pertrial_depth_morn = pertrial_depth_morn(target_centers_morn == pref_dir_max_tgt_morn);
-            tgt_pertrial_depth_noon = pertrial_depth_noon(target_centers_noon == pref_dir_max_tgt_noon);
-    
-            tgt_err_bsfr_morn = err_bsfr_morn(target_centers_morn == pref_dir_max_tgt_morn);
-            tgt_err_bsfr_noon = err_bsfr_noon(target_centers_noon == pref_dir_max_tgt_noon);
-    
-            tgt_err_depth_morn = err_depth_morn(target_centers_morn == pref_dir_max_tgt_morn);
-            tgt_err_depth_noon = err_depth_noon(target_centers_noon == pref_dir_max_tgt_noon);
-    
-            tgt_dir_morn = target_dirs_morn(target_centers_morn == pref_dir_max_tgt_morn);
-            tgt_dir_noon = target_dirs_noon(target_centers_noon == pref_dir_max_tgt_noon);
+            pref_dir_tgt_morn = max(target_centers_morn(target_dirs_morn == pref_dir));
+            pref_dir_tgt_noon = max(target_centers_noon(target_dirs_noon == pref_dir));
+        elseif strcmp(tgt_mpfr, 'Min')
+            pref_dir_tgt_morn = min(target_centers_morn(target_dirs_morn == pref_dir));
+            pref_dir_tgt_noon = min(target_centers_noon(target_dirs_noon == pref_dir));
         end
 
-        if strcmp(tgt_mpfr, 'Min')
-            tgt_bsfr_morn = avg_bsfr_morn(target_centers_morn == pref_dir_min_tgt_morn);
-            tgt_bsfr_noon = avg_bsfr_noon(target_centers_noon == pref_dir_min_tgt_noon);
-    
-            tgt_depth_morn = avg_depth_morn(target_centers_morn == pref_dir_min_tgt_morn);
-            tgt_depth_noon = avg_depth_noon(target_centers_noon == pref_dir_min_tgt_noon);
-    
-            tgt_pertrial_depth_morn = pertrial_depth_morn(target_centers_morn == pref_dir_min_tgt_morn);
-            tgt_pertrial_depth_noon = pertrial_depth_noon(target_centers_noon == pref_dir_min_tgt_noon);
-    
-            tgt_err_bsfr_morn = err_bsfr_morn(target_centers_morn == pref_dir_min_tgt_morn);
-            tgt_err_bsfr_noon = err_bsfr_noon(target_centers_noon == pref_dir_min_tgt_noon);
-    
-            tgt_err_depth_morn = err_depth_morn(target_centers_morn == pref_dir_min_tgt_morn);
-            tgt_err_depth_noon = err_depth_noon(target_centers_noon == pref_dir_min_tgt_noon);
-    
-            tgt_dir_morn = target_dirs_morn(target_centers_morn == pref_dir_min_tgt_morn);
-            tgt_dir_noon = target_dirs_noon(target_centers_noon == pref_dir_min_tgt_noon);
+        if isempty(pref_dir_tgt_morn) || isempty(pref_dir_tgt_noon)
+            disp('No targets in the preferred direction!')
+            continue
         end
- 
-        %% Confirm the preferred direction is the same in the morning and afternoon
-        if ~isequal(pref_dir_morn, pref_dir_noon)
-            % If the depths of modulation 
-            depth_diff_morn = tgt_depth_morn(tgt_dir_morn == pref_dir_morn) - ...
-                tgt_depth_morn(tgt_dir_morn == pref_dir_noon);
-            depth_diff_noon = tgt_depth_noon(tgt_dir_noon == pref_dir_morn) - ...
-                tgt_depth_noon(tgt_dir_noon == pref_dir_noon);
-            if abs(depth_diff_morn) + abs(depth_diff_noon) < 5
-                pref_dir_noon = pref_dir_morn;
-            else
-                disp('Preferred directions changed between sessions!')
-                continue
-            end
+
+        if isequal(pref_dir_tgt_noon, pref_dir_tgt_noon)
+            target_center = pref_dir_tgt_noon;
         end
+
+        %% Find the alignment times
+        [~, alignment_time_morn] = EventWindow(xds_morn, unit_name, pref_dir, target_center, event);
+        [~, alignment_time_noon] = EventWindow(xds_noon, unit_name, pref_dir, target_center, event);
+        
+        %% Find the post-spike facilitation
+
+        %[~, peak_to_noise_ratio_morn] = Spike_Trigger_Avg(xds_morn, unit_name, pref_dir, 0, 0);
+        %[~, peak_to_noise_ratio_noon] = Spike_Trigger_Avg(xds_noon, unit_name, pref_dir, 0, 0);
+
+        %max_facil = max(cat(1, peak_to_noise_ratio_morn, peak_to_noise_ratio_noon));
+        max_facil = NaN;
+
+        %% Look at the maximum or minimum targets if not using all targets
+
+        tgt_depth_morn = avg_depth_morn(target_centers_morn == target_center);
+        tgt_depth_noon = avg_depth_noon(target_centers_noon == target_center);
+
+        tgt_pertrial_mpfr_morn = pertrial_mpfr_morn(target_centers_morn == target_center);
+        tgt_pertrial_mpfr_noon = pertrial_mpfr_noon(target_centers_noon == target_center);
+
+        tgt_pertrial_depth_morn = pertrial_depth_morn(target_centers_morn == target_center);
+        tgt_pertrial_depth_noon = pertrial_depth_noon(target_centers_noon == target_center);
+
+        tgt_err_depth_morn = err_depth_morn(target_centers_morn == target_center);
+        tgt_err_depth_noon = err_depth_noon(target_centers_noon == target_center);
+
+        tgt_dir_morn = target_dirs_morn(target_centers_morn == target_center);
+        tgt_dir_noon = target_dirs_noon(target_centers_noon == target_center);
 
         %% Find the number of targets in the preferred direction
-        num_targets_morn = length(target_centers_morn(target_dirs_morn == pref_dir_morn));
-        num_targets_noon = length(target_centers_morn(target_dirs_morn == pref_dir_noon));
+        num_targets_morn = length(target_centers_morn(target_dirs_morn == pref_dir));
+        num_targets_noon = length(target_centers_morn(target_dirs_morn == pref_dir));
         % Confirm the # of targets in the morning & afternoon are equal
         if isequal(num_targets_morn, num_targets_noon)
             pref_dir_targets = num_targets_morn;
@@ -244,70 +294,47 @@ for xx = 1:length(Dates)
             disp('Unequal number of targets!')
         end
   
-        %% Baseline firing rate & depth of modulation in the preferred direction
-        avg_bsfr_morn = tgt_bsfr_morn(tgt_dir_morn == pref_dir_morn);
-        avg_bsfr_noon = tgt_bsfr_noon(tgt_dir_noon == pref_dir_noon);
+        %% Phasic firing rates & depth of modulation in the preferred direction
 
-        pertrial_depth_morn = tgt_pertrial_depth_morn(tgt_dir_morn == pref_dir_morn);
-        pertrial_depth_noon = tgt_pertrial_depth_noon(tgt_dir_noon == pref_dir_noon);
+        pertrial_mpfr_morn = tgt_pertrial_mpfr_morn(tgt_dir_morn == pref_dir);
+        pertrial_mpfr_noon = tgt_pertrial_mpfr_noon(tgt_dir_noon == pref_dir);
 
-        avg_depth_morn = tgt_depth_morn(tgt_dir_morn == pref_dir_morn);
-        avg_depth_noon = tgt_depth_noon(tgt_dir_noon == pref_dir_noon);
+        pertrial_depth_morn = tgt_pertrial_depth_morn(tgt_dir_morn == pref_dir);
+        pertrial_depth_noon = tgt_pertrial_depth_noon(tgt_dir_noon == pref_dir);
 
-        %% Skip the unit if the depths of modulation is below the defined minimum
-        if ~isnan(Depth_Minimum)
-            if avg_depth_morn <= Depth_Minimum && avg_depth_noon <= Depth_Minimum
-                continue
-            end
-        end
+        avg_depth_morn = tgt_depth_morn(tgt_dir_morn == pref_dir);
+        avg_depth_noon = tgt_depth_noon(tgt_dir_noon == pref_dir);
+        
+        %% Standard error of the phasic firing rates & depth of modulation in the preferred direction
 
-        %% Skip the unit if the SNR is below the defined minimum
-
-        if ~isnan(SNR_Minimum)
-            [SNR_matrix_morn] = SignalToNoise(xds_morn, unit_name, 0);
-            SNR_morn = SNR_matrix_morn{2,1};
-            [SNR_matrix_noon] = SignalToNoise(xds_noon, unit_name, 0);
-            SNR_noon = SNR_matrix_noon{2,1};
-            if SNR_morn <= SNR_Minimum || SNR_noon <= SNR_Minimum
-                continue
-            end
-        end
-
-        %% Standard error of the baseline firing rate & depth of modulation in the preferred direction
-        err_bsfr_morn = tgt_err_bsfr_morn(tgt_dir_morn == pref_dir_morn);
-        err_bsfr_noon = tgt_err_bsfr_noon(tgt_dir_noon == pref_dir_noon);
-
-        err_depth_morn = tgt_err_depth_morn(tgt_dir_morn == pref_dir_morn);
-        err_depth_noon = tgt_err_depth_noon(tgt_dir_noon == pref_dir_noon);
+        err_depth_morn = tgt_err_depth_morn(tgt_dir_morn == pref_dir);
+        err_depth_noon = tgt_err_depth_noon(tgt_dir_noon == pref_dir);
 
         %% Check if the unit's depth of modulation changed significantly
 
+        % Modulation statistics & effect sizes
+        [~, mod_t_test_morn] = ttest2(pertrial_bsfr_morn{1,1}, pertrial_mpfr_morn{1,1});
+        [mod_wilcoxon_morn, ~] = ranksum(pertrial_bsfr_morn{1,1}, pertrial_mpfr_morn{1,1});
+        [~, mod_t_test_noon] = ttest2(pertrial_bsfr_noon{1,1}, pertrial_mpfr_noon{1,1});
+        [mod_wilcoxon_noon, ~] = ranksum(pertrial_bsfr_noon{1,1}, pertrial_mpfr_noon{1,1});
+
+        % Baseline firing rate statistics (Unpaired T-Test)
+        [~, bsfr_t_test] = ttest2(pertrial_bsfr_morn{1,1}, pertrial_bsfr_noon{1,1});
+        % Baseline firing rate statistics (Wilcoxon rank sum test)
+        [bsfr_wilcoxon, ~] = ranksum(pertrial_bsfr_morn{1,1}, pertrial_bsfr_noon{1,1});
+        % Baseline firing rate percent change
+        bsfr_perc = (avg_bsfr_noon - avg_bsfr_morn) / avg_bsfr_morn;
+        % Baseline firing rate effect size (Cohen d)
+        bsfr_cohen_d = Cohen_D(pertrial_bsfr_morn{1,1}, pertrial_bsfr_noon{1,1});
+
         % Depth of modulation statistics (Unpaired T-Test)
         [~, depth_t_test] = ttest2(pertrial_depth_morn{1,1}, pertrial_depth_noon{1,1});
-
         % Depth of modulation statistics (Wilcoxon rank sum test)
         [depth_wilcoxon, ~] = ranksum(pertrial_depth_morn{1,1}, pertrial_depth_noon{1,1});
-
-        %% Check if the unit is well sorted
-        
-
-        [~, wave_sort_metric] = WaveShapes_Morn_v_Noon(xds_morn, xds_noon, unit_name, 0, 0);
-        if isnan(wave_sort_metric)
-            % If the unit doesn't exist or has less than 1000 spikes
-            continue
-        end
-        [~, nonlin_sort_metric] = NonLinearEnergy_Morn_v_Noon(xds_morn, xds_noon, unit_name, 0, 0);
-
-
-        [Fractional_Contam, ~] = InterstimulusInterval_Morn_v_Noon(xds_morn, xds_noon, unit_name, 0, 0);
-
-        [fract_contam_morn, ~] = InterstimulusInterval(xds_morn, unit_name, 0, 0);
-        [fract_contam_noon, ~] = InterstimulusInterval(xds_noon, unit_name, 0, 0);
-
-        % Skip the unit if the fract_contam changes between sessions
-        if abs(fract_contam_noon - fract_contam_morn) >= 0.5
-            continue
-        end
+        % Depth of modulation percent change
+        depth_perc = (avg_depth_noon - avg_depth_morn) / avg_depth_morn;
+        % Depth of modulation effect size (Cohen d)
+        depth_cohen_d = Cohen_D(pertrial_depth_morn{1,1}, pertrial_depth_noon{1,1});
 
         %% Add to the counter if above the depth minimum & SNR minimum
         cc = cc + 1;
@@ -316,7 +343,14 @@ for xx = 1:length(Dates)
         % Unit names
         all_unit_names{xx,1}(cc,1) = {unit_name};
         % Preferred Direction
-        pref_dir{xx,1}(cc,1) = pref_dir_morn;
+        all_units_pref_dir{xx,1}(cc,1) = pref_dir;
+        % Target Distance
+        all_units_target{xx,1}(cc,1) = target_center;
+        % Alignment Times
+        alignment_morn{xx,1}(cc,1) = alignment_time_morn;
+        alignment_noon{xx,1}(cc,1) = alignment_time_noon;
+        % Post Spike Facilitation
+        post_spike_facil{xx,1}(cc,1) = max_facil;
 
         % Morning baseline firing rate
         bsfr_morn{xx,1}(cc,1) = avg_bsfr_morn;
@@ -330,20 +364,44 @@ for xx = 1:length(Dates)
         % Morning baseline firing rate error
         bsfr_err_morn{xx,1}(cc,1) = err_bsfr_morn;
         % Morning depth error
-        mp_err_morn{xx,1}(cc,1) = err_depth_morn;
+        depth_err_morn{xx,1}(cc,1) = err_depth_morn;
         % Afternoon baseline firing rate error
         bsfr_err_noon{xx,1}(cc,1) = err_bsfr_noon;
         % Afternoon depth error
-        mp_err_noon{xx,1}(cc,1) = err_depth_noon;
+        depth_err_noon{xx,1}(cc,1) = err_depth_noon;
+
+        % Modulation statistics
+        mod_p_value_t_test_morn{xx,1}(cc,1) = mod_t_test_morn;
+        mod_p_value_wilcoxon_morn{xx,1}(cc,1) = mod_wilcoxon_morn;
+        mod_p_value_t_test_noon{xx,1}(cc,1) = mod_t_test_noon;
+        mod_p_value_wilcoxon_noon{xx,1}(cc,1) = mod_wilcoxon_noon;
+
+        % Baseline firing rate statistics
+        bsfr_p_value_t_test{xx,1}(cc,1) = bsfr_t_test;
+        bsfr_p_value_wilcoxon{xx,1}(cc,1) = bsfr_wilcoxon;
+        bsfr_effect_perc{xx,1}(cc,1) = bsfr_perc;
+        bsfr_effect_cohen_d{xx,1}(cc,1) = bsfr_cohen_d;
 
         % Depth of modulation statistics
         depth_p_value_t_test{xx,1}(cc,1) = depth_t_test;
         depth_p_value_wilcoxon{xx,1}(cc,1) = depth_wilcoxon;
+        depth_effect_perc{xx,1}(cc,1) = depth_perc;
+        depth_effect_cohen_d{xx,1}(cc,1) = depth_cohen_d;
 
+        % Signal to noise ratio
+        wave_sigtonoise{xx,1}(cc,1) = wave_sig_to_noise;
+        nonlin_sigtonoise{xx,1}(cc,1) = nonlin_sig_to_noise;
+        % Peak to peak amplitude
+        wave_peaktopeak{xx,1}(cc,1) = wave_peak_to_peak;
+        nonlin_peaktopeak{xx,1}(cc,1) = nonlin_peak_to_peak;
         % Wave shape t-test
         wave_p_value{xx,1}(cc,1) = wave_sort_metric;
         % Nonlinear energy t-test
         nonlin_p_value{xx,1}(cc,1) = nonlin_sort_metric;
+        % Spike width
+        spike_width{xx,1}(cc,1) = wave_spike_width;
+        % Repolarization Time
+        repol_time{xx,1}(cc,1) = wave_repol_time;
         % Fractional Contamination
         fract_contam{xx,1}(cc,1) = Fractional_Contam;
 
@@ -355,63 +413,63 @@ for xx = 1:length(Dates)
     %% Create matrix for all units morning and afternoon
 
     % Create the excel matrix
-    morn_and_noon = cell(length(all_unit_names{xx,1}) + 1, 17);
-    % Define the excel matrix headers
-    morn_and_noon{1,1} = 'unit_names';
-    morn_and_noon{1,2} = 'pref_dir';
-    morn_and_noon{1,3} = 'bsfr_morn';
-    morn_and_noon{1,4} = 'bsfr_err_morn';
-    morn_and_noon{1,5} = 'mp_err_morn';
-    morn_and_noon{1,6} = 'depth_morn';
-    morn_and_noon{1,7} = 'bsfr_noon';
-    morn_and_noon{1,8} = 'bsfr_err_noon';
-    morn_and_noon{1,9} = 'mp_err_noon';
-    morn_and_noon{1,10} = 'depth_noon';
-    morn_and_noon{1,11} = 'depth_t_test';
-    morn_and_noon{1,12} = 'depth_wilcoxon';
-    morn_and_noon{1,13} = 'wave_p_value';
-    morn_and_noon{1,14} = 'nonlin_p_value';
-    morn_and_noon{1,15} = 'fract_contam';
-    morn_and_noon{1,16} = 'num_targets';
-    morn_and_noon{1,17} = 'drug_dose_mg_per_kg';
+    [morn_and_noon] = Multi_Session_Matrix(length(all_unit_names{xx,1}));
 
     % Assign the values to the excel matrix
-    uu = 2;
-    morn_and_noon{2,17} = Drug_Dose{xx,1};
-    for N = 1:length(all_unit_names{xx,1})
-        morn_and_noon{uu,1} = char(all_unit_names{xx,1}(N,1));
-        morn_and_noon{uu,2} = pref_dir{xx,1}(N,1);
-        morn_and_noon{uu,3} = bsfr_morn{xx,1}(N,1);
-        morn_and_noon{uu,4} = bsfr_err_morn{xx,1}(N,1);
-        morn_and_noon{uu,5} = mp_err_morn{xx,1}(N,1);
-        morn_and_noon{uu,6} = depth_morn{xx,1}(N,1);
-        morn_and_noon{uu,7} = bsfr_noon{xx,1}(N,1);
-        morn_and_noon{uu,8} = bsfr_err_noon{xx,1}(N,1);
-        morn_and_noon{uu,9} = mp_err_noon{xx,1}(N,1);
-        morn_and_noon{uu,10} = depth_noon{xx,1}(N,1);
-        morn_and_noon{uu,11} = depth_p_value_t_test{xx,1}(N,1);
-        morn_and_noon{uu,12} = depth_p_value_wilcoxon{xx,1}(N,1);
-        morn_and_noon{uu,13} = wave_p_value{xx,1}(N,1);
-        morn_and_noon{uu,14} = nonlin_p_value{xx,1}(N,1);
-        morn_and_noon{uu,15} = fract_contam{xx,1}(N,1);
-        morn_and_noon{uu,16} = num_targets{xx,1}(N,1);
-        uu = uu + 1;
-    end
+    morn_and_noon.unit_names = char(all_unit_names{xx,1});
+    morn_and_noon.bsfr_morn = bsfr_morn{xx,1};
+    morn_and_noon.bsfr_noon = bsfr_noon{xx,1};
+    morn_and_noon.depth_morn = depth_morn{xx,1};
+    morn_and_noon.depth_noon = depth_noon{xx,1};
+    morn_and_noon.bsfr_err_morn = bsfr_err_morn{xx,1};
+    morn_and_noon.bsfr_err_noon = bsfr_err_noon{xx,1};
+    morn_and_noon.depth_err_morn = depth_err_morn{xx,1};
+    morn_and_noon.depth_err_noon = depth_err_noon{xx,1};
+    morn_and_noon.bsfr_t_test = bsfr_p_value_t_test{xx,1};
+    morn_and_noon.bsfr_wilcoxon = bsfr_p_value_wilcoxon{xx,1};
+    morn_and_noon.bsfr_perc = bsfr_effect_perc{xx,1};
+    morn_and_noon.bsfr_cohen_d = bsfr_effect_cohen_d{xx,1};
+    morn_and_noon.mod_t_test_morn = mod_p_value_t_test_morn{xx,1};
+    morn_and_noon.mod_wilcoxon_morn = mod_p_value_wilcoxon_morn{xx,1};
+    morn_and_noon.mod_t_test_noon = mod_p_value_t_test_noon{xx,1};
+    morn_and_noon.mod_wilcoxon_noon = mod_p_value_wilcoxon_noon{xx,1};
+    morn_and_noon.depth_t_test = depth_p_value_t_test{xx,1};
+    morn_and_noon.depth_wilcoxon = depth_p_value_wilcoxon{xx,1};
+    morn_and_noon.depth_perc = depth_effect_perc{xx,1};
+    morn_and_noon.depth_cohen_d = depth_effect_cohen_d{xx,1};
+    morn_and_noon.pref_dir = all_units_pref_dir{xx,1};
+    morn_and_noon.target = all_units_target{xx,1};
+    morn_and_noon.alignment_morn = alignment_morn{xx,1};
+    morn_and_noon.alignment_noon = alignment_noon{xx,1};
+    morn_and_noon.post_spike_facil = post_spike_facil{xx,1};
+    morn_and_noon.wave_sigtonoise = wave_sigtonoise{xx,1};
+    morn_and_noon.wave_peaktopeak = wave_peaktopeak{xx,1};
+    morn_and_noon.wave_p_value = wave_p_value{xx,1};
+    morn_and_noon.nonlin_sigtonoise = nonlin_sigtonoise{xx,1};
+    morn_and_noon.nonlin_peaktopeak = nonlin_peaktopeak{xx,1};
+    morn_and_noon.nonlin_p_value = nonlin_p_value{xx,1};
+    morn_and_noon.spike_width = spike_width{xx,1};
+    morn_and_noon.repol_time = repol_time{xx,1};
+    morn_and_noon.fract_contam = fract_contam{xx,1};
+    morn_and_noon.num_targets = num_targets{xx,1};
+    morn_and_noon.rxn_time = NaN(height(morn_and_noon), 1);
+    morn_and_noon.rxn_time(1) = rxn_time{xx,1};
+    morn_and_noon.drug_dose_mg_per_kg = strings(height(morn_and_noon), 1);
+    morn_and_noon.drug_dose_mg_per_kg(1) = char(Drug_Dose{xx,1});
 
     %% Save to Excel
 
     if isequal(Save_Excel, 1)
 
         % Define the file name
-        Monkey_Name = xds_morn.meta.monkey;
-        filename = char(strcat(Dates{xx,1}, '_', Monkey_Name, '_', ...
+        filename = char(strcat(Dates{xx,1}, '_', Monkey, '_', ...
             Tasks{xx,1}, '_', Drug_Choice));
 
         % Save the file
         if ~exist(Save_Path, 'dir')
             mkdir(Save_Path);
         end
-        writecell(morn_and_noon, strcat(Save_Path, filename, '.xlsx'))
+        writetable(morn_and_noon, strcat(Save_Path, filename, '.xlsx'))
 
     end
 

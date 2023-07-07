@@ -1,4 +1,4 @@
-function Histogram_Plot(Monkey, Sampling_Params, Save_Figs)
+function Anova_Plot(Monkey, Sampling_Params, Save_Figs)
 
 %% Load the output structures
 
@@ -7,8 +7,8 @@ function Histogram_Plot(Monkey, Sampling_Params, Save_Figs)
 
 %% Some of the plotting specifications
 
-% Which firing rate phase do you want to plot? ('bsfr', 'ramp', 'TgtHold', 'Peak', 'depth')?
-fire_rate_phase = 'depth';
+% Which firing rate phase do you want to plot? ('Baseline', 'Ramp', 'TgtHold', 'Peak', 'Depth')?
+fire_rate_phase = 'Depth';
 
 % Do you want to plot the morning / afternoon legend? (1 = Yes, 0 = No)
 plot_legend = 1;
@@ -28,7 +28,23 @@ end
 
 %% Reassign variables according to what you're plotting
 
+if strcmp(fire_rate_phase, 'Baseline')
+    disp('Baseline Firing Rate')
+    fire_rate_morn = split_depth_excel{strcmp(column_names, 'bsfr_morn')};
+    fire_rate_noon = split_depth_excel{strcmp(column_names, 'bsfr_noon')};
+end
+if strcmp(fire_rate_phase, 'Ramp')
+    disp('Ramp Phase')
+    fire_rate_morn = split_depth_excel{strcmp(column_names, 'ramp_morn')};
+    fire_rate_noon = split_depth_excel{strcmp(column_names, 'ramp_noon')};
+end
+if strcmp(fire_rate_phase, 'TgtHold')
+    disp('TgtHold Phase')
+    fire_rate_morn = split_depth_excel{strcmp(column_names, 'TgtHold_morn')};
+    fire_rate_noon = split_depth_excel{strcmp(column_names, 'TgtHold_noon')};
+end
 if strcmp(fire_rate_phase, 'Peak')
+    disp('Peak Firing Rate')
     bsfr_morn = split_depth_excel{strcmp(column_names, 'bsfr_morn')};
     bsfr_noon = split_depth_excel{strcmp(column_names, 'bsfr_noon')};
     depth_morn = split_depth_excel{strcmp(column_names, 'depth_morn')};
@@ -39,9 +55,11 @@ if strcmp(fire_rate_phase, 'Peak')
         fire_rate_morn{ii} = bsfr_morn{ii} + depth_morn{ii};
         fire_rate_noon{ii} = bsfr_noon{ii} + depth_noon{ii};
     end
-else
-    fire_rate_morn = split_depth_excel{strcmp(column_names, strcat(fire_rate_phase, '_morn'))};
-    fire_rate_noon = split_depth_excel{strcmp(column_names, strcat(fire_rate_phase, '_noon'))};
+end
+if strcmp(fire_rate_phase, 'Depth')
+    disp('Depth of Modulation')
+    fire_rate_morn = split_depth_excel{strcmp(column_names, 'depth_morn')};
+    fire_rate_noon = split_depth_excel{strcmp(column_names, 'depth_noon')};
 end
 
 % Extract the other variables
@@ -56,9 +74,12 @@ legend_size = 30;
 mean_line_width = 5;
 if isequal(plot_legend, 1)
     p_value_dims = [0.51 0.3 0.44 0.44];
-    n_value_dims = [0.49 0.225 0.44 0.44];
 else
     p_value_dims = [0.51 0.45 0.44 0.44];
+end
+if isequal(plot_legend, 1)
+    n_value_dims = [0.49 0.225 0.44 0.44];
+else
     n_value_dims = [0.49 0.375 0.44 0.44];
 end
 title_font_size = 14;
@@ -152,7 +173,7 @@ for xx = 1:length(all_unit_names)
             title(strcat(fig_title, file_names{xx}), 'FontSize', title_font_size)
         end
     elseif strcmp(Sampling_Params.trial_sessions, 'All')
-        scatter_title = strcat('All Trials,', {' '}, Sampling_Params.drug_choice);
+        scatter_title = strcat('All Trials,', {' '}, Drug_Choice);
         if strcmp(Sampling_Params.trial_task, 'PG')
             scatter_title = strcat(scatter_title, {' '}, 'PG');
         end
@@ -176,10 +197,10 @@ for xx = 1:length(all_unit_names)
 
     % Label the axis
     ylabel('Units', 'FontSize', label_font_size)
-    if strcmp(fire_rate_phase, 'bsfr')
+    if strcmp(fire_rate_phase, 'Baseline')
         xlabel('Baseline Firing Rate (Hz)', 'FontSize', label_font_size)
     end
-    if strcmp(fire_rate_phase, 'ramp')
+    if strcmp(fire_rate_phase, 'Ramp')
         xlabel('Ramp Phase Firing Rate (Hz)', 'FontSize', label_font_size)
     end
     if strcmp(fire_rate_phase, 'TgtHold')
@@ -188,7 +209,7 @@ for xx = 1:length(all_unit_names)
     if strcmp(fire_rate_phase, 'Peak')
         xlabel('Peak Firing Rate (Hz)', 'FontSize', label_font_size);
     end
-    if strcmp(fire_rate_phase, 'depth')
+    if strcmp(fire_rate_phase, 'Depth')
         xlabel('Depth of Modulation (Hz)', 'FontSize', label_font_size)
     end
 
