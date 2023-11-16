@@ -84,10 +84,21 @@ for xx = 1:length(Dates)
             RampFiringRate(xds_noon, unit_name);
 
         %% Get the target hold firing rates
-        [avg_TgtHold_morn, ~, err_TgtHold_morn, pertrial_TgtHold_morn] = ... 
-            TgtHoldFiringRate(xds_morn, unit_name);
-        [avg_TgtHold_noon, ~, err_TgtHold_noon, pertrial_TgtHold_noon] = ... 
-            TgtHoldFiringRate(xds_noon, unit_name);
+        [avg_TgtHold_morn, ~, pertrial_TgtHold_morn] = ...
+            EventPeakFiringRate(xds_morn, unit_name, 'TgtHold');
+        [avg_TgtHold_noon, ~, pertrial_TgtHold_noon] = ...
+            EventPeakFiringRate(xds_noon, unit_name, 'TgtHold');
+
+        %% Find the standard error of the target hold firing rates
+
+        err_TgtHold_morn = zeros(length(pertrial_TgtHold_morn),1);
+        err_TgtHold_noon = zeros(length(pertrial_TgtHold_noon),1);
+        for ii = 1:length(avg_TgtHold_morn)
+            err_TgtHold_morn(ii,1) = std(pertrial_TgtHold_morn{ii,1}) / ...
+                sqrt(length(pertrial_TgtHold_morn{ii,1}));
+            err_TgtHold_noon(ii,1) = std(pertrial_TgtHold_noon{ii,1}) / ...
+                sqrt(length(pertrial_TgtHold_noon{ii,1}));
+        end
 
         %% Extract the target directions & centers
         [target_dirs_morn, target_centers_morn] = Identify_Targets(xds_morn);
@@ -199,14 +210,14 @@ for xx = 1:length(Dates)
     excel_addition.TgtHold_noon = TgtHold_noon;
     excel_addition.TgtHold_err_morn = TgtHold_err_morn;
     excel_addition.TgtHold_err_noon = TgtHold_err_noon;
-    excel_addition.ramp_t_test = ramp_t_test;
-    excel_addition.ramp_wilcoxon = ramp_wilcoxon;
-    excel_addition.ramp_perc = ramp_perc;
-    excel_addition.ramp_cohen_d = ramp_cohen_d;
-    excel_addition.TgtHold_t_test = TgtHold_t_test;
-    excel_addition.TgtHold_wilcoxon = TgtHold_wilcoxon;
-    excel_addition.TgtHold_perc = TgtHold_perc;
-    excel_addition.TgtHold_cohen_d = TgtHold_cohen_d;
+    excel_addition.ramp_t_test = ramp_p_value_t_test;
+    excel_addition.ramp_wilcoxon = ramp_p_value_wilcoxon;
+    excel_addition.ramp_perc = ramp_effect_perc;
+    excel_addition.ramp_cohen_d = ramp_effect_cohen_d;
+    excel_addition.TgtHold_t_test = TgtHold_p_value_t_test;
+    excel_addition.TgtHold_wilcoxon = TgtHold_p_value_wilcoxon;
+    excel_addition.TgtHold_perc = TgtHold_effect_perc;
+    excel_addition.TgtHold_cohen_d = TgtHold_effect_cohen_d;
 
     % Join the tables
     xds_excel = [first_half_excel excel_addition second_half_excel];

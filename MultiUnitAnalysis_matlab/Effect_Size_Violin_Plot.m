@@ -1,4 +1,4 @@
-function Effect_Size_Violin_Plot(Monkey, Sampling_Params, Save_Figs)
+function Effect_Size_Violin_Plot(Monkey, Sampling_Params, Save_File)
 
 %% Load the output structures
 
@@ -20,11 +20,11 @@ man_y_axis = 'No';
 % What effect size meausure do you want to use ('Perc', 'Cohen')
 effect_sz_test = 'Cohen';
 
+% Do you want the simplified title? (1 = Yes, 0 = No)
+simp_title = 0;
+
 % Save the figures to your desktop? ('All', 'pdf', 'png', 'fig', 0 = No)
-if ~isequal(Save_Figs, 0)
-    save_title = strings;
-    % Do you want a save title or blank title (1 = save_title, 0 = blank)
-    Fig_Save_Title = 1;
+if ~isequal(Save_File, 0)
     close all
 end
 
@@ -78,12 +78,9 @@ if isequal(remove_outliers, 1)
     outlier_ann_dims = [0.7 0.325 0.44 0.44];
 end
 title_font_size = 14;
-save_title_font_size = 45;
 font_name = 'Arial';
 fig_size = 700;
-
-% Save Counter
-ss = 1;
+title_color =  'k';
 
 %% Loop through each of the experimental sessions
 for xx = 1:length(all_unit_names)
@@ -94,14 +91,56 @@ for xx = 1:length(all_unit_names)
         continue
     end
 
-    %% Add the monkey name to the title
+    %% Title information
 
+    % Title info
+    Fig_Title = '';
     if strcmp(Monkey, 'All')
-        fig_title = strcat('All Monkeys,', {' '});
-    else
-        fig_title = '';
+        Fig_Title = strcat('All Monkeys,', {' '});
+    end
+    if strcmp(Sampling_Params.trial_sessions, 'All')
         for ii = 1:length(Monkey)
-            fig_title = strcat(fig_title, Monkey{ii}, ',', {' '});
+            Fig_Title = strcat(Fig_Title, Monkey{ii}, ',', {' '});
+        end
+        Fig_Title = strcat(Fig_Title, {' '}, 'All Trials,', {' '}, Sampling_Params.drug_choice);
+        if strcmp(Sampling_Params.trial_task, 'PG')
+            Fig_Title = strcat(Fig_Title, {' '}, 'PG');
+        end
+        if strcmp(Sampling_Params.trial_task, 'KG')
+            Fig_Title = strcat(Fig_Title, {' '}, 'KG');
+        end
+        if strcmp(Sampling_Params.trial_task, 'WS')
+            Fig_Title = strcat(Fig_Title, {' '}, 'WS');
+        end
+        Fig_Title = strcat(Fig_Title, {' '}, fire_rate_phase);
+    else
+        if ~strcmp(Sampling_Params.drug_choice, 'Con')
+            Fig_Title = strcat(Fig_Title, file_names{xx}, {' '}, string(drug_dose{xx}(1)));
+        else
+            Fig_Title = strcat(Fig_Title, file_names{xx});
+        end
+    end
+
+    % Simplified title
+    if ~isequal(simp_title, 0)
+        if strcmp(Sampling_Params.drug_choice, 'Lex')
+            title_color = [0 0.5 0];
+            Fig_Title = 'Escitalopram';
+        end
+        if strcmp(Sampling_Params.drug_choice, 'Caff')
+            title_color = [0 0.5 0];
+            Fig_Title = 'Caffeine';
+        end
+        if strcmp(Sampling_Params.drug_choice, 'Cyp')
+            title_color =  'r';
+            Fig_Title = 'Cyproheptadine';
+        end
+        if strcmp(Sampling_Params.drug_choice, 'Con')
+            title_color =  'k';
+            Fig_Title = 'Control';
+        end
+        if contains(Sampling_Params.drug_choice, '202')
+            Fig_Title = strcat(Fig_Title, file_names{xx});
         end
     end
 
@@ -151,25 +190,7 @@ for xx = 1:length(all_unit_names)
     line([0.5, 1.5], [0, 0], 'Color', 'k', 'Linewidth', zero_line_width, 'Linestyle','--')
 
     % Set the title
-    if strcmp(Sampling_Params.trial_sessions, 'Ind')
-        if ~strcmp(Sampling_Params.drug_choice, 'Con')
-            title(strcat(fig_title, file_names{xx}, {' '}, string(drug_dose{xx}(1))), 'FontSize', title_font_size)
-        else
-            title(strcat(fig_title, file_names{xx}), 'FontSize', title_font_size)
-        end
-    elseif strcmp(Sampling_Params.trial_sessions, 'All')
-        scatter_title = strcat('All Trials,', {' '}, Sampling_Params.drug_choice);
-        if strcmp(Sampling_Params.trial_task, 'PG')
-            scatter_title = strcat(scatter_title, {' '}, 'PG');
-        end
-        if strcmp(Sampling_Params.trial_task, 'KG')
-            scatter_title = strcat(scatter_title, {' '}, 'KG');
-        end
-        if strcmp(Sampling_Params.trial_task, 'WS')
-            scatter_title = strcat(scatter_title, {' '}, 'WS');
-        end
-        title(strcat(fig_title, scatter_title, {' '}, fire_rate_phase), 'FontSize', title_font_size)
-    end
+    title(Fig_Title, 'FontSize', title_font_size, 'Color', title_color, 'Interpreter', 'none')
 
     % Axis Editing
     figure_axes = gca;
@@ -179,37 +200,6 @@ for xx = 1:length(all_unit_names)
     set(figure_axes,'box','off')
     % Set the tick label font size
     figure_axes.FontSize = label_font_size - 10;
-
-    if ~isequal(Save_Figs, 0)
-        fig_info = get(gca,'title');
-        save_title(ss) = get(fig_info, 'string');
-        % Make the title the drug
-        if strcmp(Sampling_Params.drug_choice, 'Lex')
-            fig_title = 'Escitalopram';
-        end
-        if strcmp(Sampling_Params.drug_choice, 'Caff')
-            fig_title = 'Caffeine';
-        end
-        if strcmp(Sampling_Params.drug_choice, 'Cyp')
-            fig_title = 'Cyproheptadine';
-        end
-        if strcmp(Sampling_Params.drug_choice, 'Con')
-            fig_title = 'Control';
-        end
-        if contains(Sampling_Params.drug_choice, '202')
-            fig_title = strcat(file_names{xx});
-        end
-        if ~isequal(Fig_Save_Title, 0)
-            if strcmp(Sampling_Params.trial_task, 'All')
-                title(fig_title, 'FontSize', save_title_font_size - 15)
-            else
-                save_title(ss) = get(fig_info, 'string');
-            end
-            title(fig_title, 'Fontsize', save_title_font_size, 'Color', violin_color);
-        else
-            title('')
-        end
-    end
 
     % Only label every other tick
     x_labels = string(figure_axes.XAxis.TickLabels);
@@ -250,34 +240,10 @@ for xx = 1:length(all_unit_names)
         outlier_ann.FontName = font_name;
     end
 
-    % Add to the counter
-    ss = ss + 1;
-
+    %% Save the file if selected
+    Save_Figs(Fig_Title, Save_File)
+    
 end % End the xds loop
-
-%% Define the save directory & save the figures
-if ~isequal(Save_Figs, 0)
-    save_dir = 'C:\Users\rhpow\Desktop\';
-    for ii = numel(findobj('type','figure')):-1:1
-        save_title(ii) = strrep(save_title(ii), ':', '');
-        save_title(ii) = strrep(save_title(ii), '.0', '');
-        save_title(ii) = strrep(save_title(ii), 'vs.', 'vs');
-        save_title(ii) = strrep(save_title(ii), 'mg.', 'mg');
-        save_title(ii) = strrep(save_title(ii), 'kg.', 'kg');
-        save_title(ii) = strrep(save_title(ii), '.', '_');
-        save_title(ii) = strrep(save_title(ii), '/', '_');
-        save_title(ii) = strcat(save_title(ii), {' '}, '(Violin)');
-        if ~strcmp(Save_Figs, 'All')
-            saveas(gcf, fullfile(save_dir, char(save_title(ii))), Save_Figs)
-        end
-        if strcmp(Save_Figs, 'All')
-            saveas(gcf, fullfile(save_dir, char(save_title(ii))), 'png')
-            saveas(gcf, fullfile(save_dir, char(save_title(ii))), 'pdf')
-            saveas(gcf, fullfile(save_dir, char(save_title(ii))), 'fig')
-        end
-        close gcf
-    end
-end
 
 
 

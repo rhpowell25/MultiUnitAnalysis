@@ -9,7 +9,6 @@ elseif isequal(Sampling_Params.sorted, 0)
     Data_Path = strcat(Base_Path, 'Unsorted\');
 end
 
-
 % Identify all the excel files in the data path
 Excel_Path = strcat(Data_Path, '*.xlsx');
 Excel_Files = dir(Excel_Path);
@@ -49,6 +48,7 @@ file_names = strings;
 
 % Initialize the counter
 cc = 1;
+num_variables = zeros(length(Excel_Choice),1);
 for xx = 1:length(Excel_Choice)
 
     %% Load the output table
@@ -62,6 +62,7 @@ for xx = 1:length(Excel_Choice)
     end
     % Continue if the file is open and unsaved
     if contains(Excel_Files_In_Path.name(Excel_Choice(xx)), '~')
+        num_variables(end) = [];
         continue
     end
 
@@ -70,6 +71,7 @@ for xx = 1:length(Excel_Choice)
     % Subsample according to the task
     if isfield(Sampling_Params,'trial_task') && ~strcmp(Sampling_Params.trial_task, 'All')
         if ~contains(Excel_File, Sampling_Params.trial_task)
+            num_variables(end) = [];
             continue
         end
     end
@@ -77,16 +79,18 @@ for xx = 1:length(Excel_Choice)
     % Subsample according to the number of targets
     if isfield(Sampling_Params,'max_vs_min') && ~isequal(Sampling_Params.max_vs_min, 0)
         if ismember(temp_depth_excel.num_targets, 1)
+            num_variables(end) = [];
             continue
         end
     end
 
     % Subsample the file according to the other paramaters
     [xds_depth_excel{cc}] = Subsample_Excel(temp_depth_excel, Sampling_Params);
+    num_variables(cc, 1) = length(xds_depth_excel{cc}.Properties.VariableNames);
 
     % File Name
     file_names(cc,1) = strrep(Excel_File, '_', {' '});
-
+    
     % Add to the counter
     cc = cc + 1;
 
@@ -97,19 +101,24 @@ if isfield(Sampling_Params,'trial_sessions') && strcmp(Sampling_Params.trial_ses
 
     % Define the merged session table
     merged_session = struct([]);
-    merged_variables = xds_depth_excel{1,1}.Properties.VariableNames;
+    % Find the variables shared by all trials
+    max_idx = find(num_variables == max(num_variables));
+    min_idx = find(num_variables == min(num_variables));
+    merged_variables = intersect(xds_depth_excel{1, max_idx(1)}.Properties.VariableNames, ...
+        xds_depth_excel{1, min_idx(1)}.Properties.VariableNames);
     merged_session{1,1} = array2table(zeros(0, width(merged_variables)));
     merged_session{1,1}.Properties.VariableNames = merged_variables;
 
     for xx = 1:length(file_names)
+        [~, merged_idxs, ~] = intersect(xds_depth_excel{1, xx}.Properties.VariableNames, merged_variables, 'stable');
         if isempty(xds_depth_excel{xx})
             continue
         end
         if ~iscell(xds_depth_excel{xx}.drug_dose_mg_per_kg(1))
-            merged_session{1,1} = [merged_session{1,1}; xds_depth_excel{xx}];
+            merged_session{1,1} = [merged_session{1,1}; xds_depth_excel{xx}(:,merged_idxs)];
         else
             xds_depth_excel{xx}.drug_dose_mg_per_kg = NaN(height(xds_depth_excel{xx}), 1);
-            merged_session{1,1} = [merged_session{1,1}; xds_depth_excel{xx}];
+            merged_session{1,1} = [merged_session{1,1}; xds_depth_excel{xx}(:,merged_idxs)];
         end
     end
 

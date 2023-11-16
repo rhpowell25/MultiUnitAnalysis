@@ -1,4 +1,4 @@
-function Scatter_Compare(Monkey, Sampling_Params, Save_Figs)
+function Scatter_Compare(Monkey, Sampling_Params, Save_File)
 
 %% Load the output structures
 
@@ -22,14 +22,8 @@ Morn_vs_Noon = 'Morn';
 unit_label = 1;
 
 % Save the figures to your desktop? ('All', 'pdf', 'png', 'fig', 0 = No)
-if ~isequal(Save_Figs, 0)
+if ~isequal(Save_File, 0)
     close all
-end
-
-% Save Counter
-ss = 1;
-if ~isequal(Save_Figs, 0)
-    save_title = strings;
 end
 
 %% Reassign variables according to what you're plotting
@@ -126,11 +120,11 @@ for xx = 1:length(xds_depth_excel_first)
     %% Add the monkey name to the title
 
     if strcmp(Monkey, 'All')
-        fig_title = strcat('All Monkeys,', {' '});
+        Fig_Title = strcat('All Monkeys,', {' '});
     else
-        fig_title = '';
+        Fig_Title = '';
         for ii = 1:length(Monkey)
-            fig_title = strcat(fig_title, Monkey{ii}, ',', {' '});
+            Fig_Title = strcat(Fig_Title, Monkey{ii}, ',', {' '});
         end
     end
 
@@ -142,14 +136,10 @@ for xx = 1:length(xds_depth_excel_first)
 
     % Set the title
     if strcmp(Sampling_Params.trial_sessions, 'Ind')
-        title(strcat(fig_title, file_names{xx}, {' '}, string(drug_dose{xx}(1)), {', '}, Morn_vs_Noon), 'FontSize', title_font_size)
+        title(strcat(Fig_Title, file_names{xx}, {' '}, string(drug_dose{xx}(1)), {', '}, Morn_vs_Noon), 'FontSize', title_font_size)
     elseif strcmp(Sampling_Params.trial_sessions, 'All')
         scatter_title = 'All Trials';
-        title(strcat(fig_title, scatter_title, {' '}, Drug_Choice), 'FontSize', title_font_size)
-    end
-    if ~isequal(Save_Figs, 0)
-        fig_info = get(gca,'title');
-        save_title(ss) = get(fig_info, 'string');
+        title(strcat(Fig_Title, scatter_title, {' '}, Drug_Choice), 'FontSize', title_font_size)
     end
 
     % Label the axis
@@ -206,33 +196,9 @@ for xx = 1:length(xds_depth_excel_first)
     xlim([axis_min - 10, axis_max + 10])
     ylim([axis_min - 10, axis_max + 10])
 
-    % Add to the counter
-    ss = ss + 1;
+    %% Save the file if selected
+    Save_Figs(Fig_Title, Save_File)
 
 end % End the xds loop
-
-%% Define the save directory & save the figures
-if ~isequal(Save_Figs, 0)
-    save_dir = 'C:\Users\rhpow\Desktop\';
-    for ii = numel(findobj('type','figure')):-1:1
-        save_title(ii) = strrep(save_title(ii), ':', '');
-        save_title(ii) = strrep(save_title(ii), '.0', '');
-        save_title(ii) = strrep(save_title(ii), 'vs.', 'vs');
-        save_title(ii) = strrep(save_title(ii), 'mg.', 'mg');
-        save_title(ii) = strrep(save_title(ii), 'kg.', 'kg');
-        save_title(ii) = strrep(save_title(ii), '.', '_');
-        save_title(ii) = strrep(save_title(ii), '/', '_');
-        save_title(ii) = strcat(save_title(ii), {' '}, '(Hist)');
-        if ~strcmp(Save_Figs, 'All')
-            saveas(gcf, fullfile(save_dir, char(save_title(ii))), Save_Figs)
-        end
-        if strcmp(Save_Figs, 'All')
-            saveas(gcf, fullfile(save_dir, char(save_title(ii))), 'png')
-            saveas(gcf, fullfile(save_dir, char(save_title(ii))), 'pdf')
-            saveas(gcf, fullfile(save_dir, char(save_title(ii))), 'fig')
-        end
-        close gcf
-    end
-end
 
 

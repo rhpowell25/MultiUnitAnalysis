@@ -1,4 +1,4 @@
-function Plot_Unit_Metric(Monkey, Sampling_Params, Save_Figs)
+function Plot_Unit_Metric(Monkey, Sampling_Params, Save_File)
 
 %% Load the output structures
 
@@ -23,7 +23,7 @@ font_name = 'Arial';
 fig_size = 700;
 
 % Save the figures to your desktop? ('All', 'pdf', 'png', 'fig', 0 = No)
-if ~isequal(Save_Figs, 0)
+if ~isequal(Save_File, 0)
     close all
 end
 
@@ -50,11 +50,11 @@ for xx = 1:length(all_unit_names)
     %% Add the monkey name to the title
 
     if strcmp(Monkey, 'All')
-        fig_title = strcat('All Monkeys,', {' '});
+        Fig_Title = strcat('All Monkeys,', {' '});
     else
-        fig_title = '';
+        Fig_Title = '';
         for ii = 1:length(Monkey)
-            fig_title = strcat(fig_title, Monkey{ii}, ',', {' '});
+            Fig_Title = strcat(Fig_Title, Monkey{ii}, ',', {' '});
         end
     end
 
@@ -83,9 +83,9 @@ for xx = 1:length(all_unit_names)
     % Set the title
     if strcmp(Sampling_Params.trial_sessions, 'Ind')
         if ~strcmp(Sampling_Params.drug_choice, 'Con')
-            title(strcat(fig_title, file_names{xx}, {' '}, string(drug_dose{xx}(1))), 'FontSize', title_font_size)
+            title(strcat(Fig_Title, file_names{xx}, {' '}, string(drug_dose{xx}(1))), 'FontSize', title_font_size)
         else
-            title(strcat(fig_title, file_names{xx}), 'FontSize', title_font_size)
+            title(strcat(Fig_Title, file_names{xx}), 'FontSize', title_font_size)
         end
     elseif strcmp(Sampling_Params.trial_sessions, 'All')
         scatter_title = strcat('All Trials,', {' '}, Sampling_Params.drug_choice);
@@ -98,7 +98,7 @@ for xx = 1:length(all_unit_names)
         if strcmp(Sampling_Params.trial_task, 'WS')
             scatter_title = strcat(scatter_title, {' '}, 'WS');
         end
-        title(strcat(fig_title, scatter_title, {' '}, metric_choice), 'FontSize', title_font_size, 'Interpreter', 'none')
+        title(strcat(Fig_Title, scatter_title, {' '}, metric_choice), 'FontSize', title_font_size, 'Interpreter', 'none')
     end
 
     % Axis Editing
@@ -131,30 +131,9 @@ for xx = 1:length(all_unit_names)
     figure_axes.XAxis.TickLabels = x_labels;
     figure_axes.YAxis.TickLabels = y_labels;
 
-end
+    %% Save the file if selected
+    Save_Figs(Fig_Title, Save_File)
 
-%% Define the save directory & save the figures
-if ~isequal(Save_Figs, 0)
-    save_dir = 'C:\Users\rhpow\Documents\Grad School\Pop\20210922\XDS\Unsorted\PG\Nonlinear Energy Figures\';
-    for ii = 1:numel(findobj('type','figure'))
-        fig_info = get(gca,'title');
-        fig_title = get(fig_info, 'string');
-        fig_title = strrep(fig_title, ':', '');
-        fig_title = strrep(fig_title, 'vs.', 'vs');
-        fig_title = strrep(fig_title, 'mg.', 'mg');
-        fig_title = strrep(fig_title, 'kg.', 'kg');
-        fig_title = strrep(fig_title, '.', '_');
-        fig_title = strrep(fig_title, '/', '_');
-        if ~strcmp(Save_Figs, 'All')
-            saveas(gcf, fullfile(save_dir, char(fig_title)), Save_Figs)
-        end
-        if strcmp(Save_Figs, 'All')
-            saveas(gcf, fullfile(save_dir, char(fig_title)), 'png')
-            saveas(gcf, fullfile(save_dir, char(fig_title)), 'pdf')
-            saveas(gcf, fullfile(save_dir, char(fig_title)), 'fig')
-        end
-        close gcf
-    end
 end
 
 

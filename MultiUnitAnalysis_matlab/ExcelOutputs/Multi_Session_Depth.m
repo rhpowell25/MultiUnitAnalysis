@@ -12,7 +12,7 @@ SNR_Minimum = 5;
 tgt_mpfr = 'Max';
 
 % Sorted or unsorted (1 vs 0)
-Sorted = 0;
+Sorted = 1;
 
 if isequal(Sorted, 1)
     Save_Path = strcat('C:\Users\rhpow\Documents\Work\Northwestern\Excel_Data\', event, '\Sorted\');
@@ -102,7 +102,7 @@ for xx = 1:length(Dates)
     xds_noon = Load_XDS(Monkey, Dates{xx,1}, Tasks{xx,1}, Sorted, 'Noon');
 
     % Process the xds files
-    Match_The_Targets = 0;
+    Match_The_Targets = 1;
     [xds_morn, xds_noon] = Process_XDS(xds_morn, xds_noon, Match_The_Targets);
 
     %[xds_morn] = Subsample_Reaction_Outliers(xds_morn);

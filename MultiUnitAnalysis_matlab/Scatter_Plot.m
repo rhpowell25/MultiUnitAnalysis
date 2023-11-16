@@ -1,4 +1,4 @@
-function Scatter_Plot(Monkey, Sampling_Params, Save_Figs)
+function Scatter_Plot(Monkey, Sampling_Params, Save_File)
 
 %% Load the output structures
 
@@ -7,11 +7,11 @@ function Scatter_Plot(Monkey, Sampling_Params, Save_Figs)
 
 %% Some of the plotting specifications
 
-% Which firing rate phase do you want to plot? ('bsfr', 'ramp', 'TgtHold', 'Peak', 'depth')?
+% Which firing rate phase do you want to plot? ('bsfr', 'ramp', 'TgtHold', 'Peak', 'depth', 'EMG_amp')?
 fire_rate_phase = 'depth';
 
 % Do you want to plot the legends? (1 = Yes, 0 = No)
-plot_legends = 1;
+plot_legends = 0;
 
 % Best fit or elliptial error probable? ('none', 'best_fit', or 'ellip_err_prob')
 error_choice = 'none';
@@ -23,13 +23,16 @@ stat_test = 'T-Test';
 effect_sz_test = 'Perc_Change';
 
 % Do you want the name of each unit labeled? (1 = Yes, 0 = No)
-unit_label = 0;
+unit_label = 1;
 
-% Do you want to plot the hypothesis arrows (1 = Yes, 0 = No)
-hypo_arrows = 1;
+% Do you want to plot the hypothesis arrows? (1 = Yes, 0 = No)
+hypo_arrows = 0;
+
+% Do you want the simplified title? (1 = Yes, 0 = No)
+simp_title = 0;
 
 % Save the figures to your desktop? ('All', 'pdf', 'png', 'fig', 0 = No)
-if ~isequal(Save_Figs, 0)
+if ~isequal(Save_File, 0)
     close all
 end
 
@@ -63,6 +66,9 @@ end
 fract_contam = split_depth_excel{strcmp(column_names, 'fract_contam')};
 drug_dose = split_depth_excel{strcmp(column_names, 'drug_dose_mg_per_kg')};
 all_unit_names = split_depth_excel{strcmp(column_names, 'unit_names')};
+if contains('EMG_names', column_names)
+    all_emg_names = split_depth_excel{strcmp(column_names, 'EMG_names')};
+end
 
 %% Some variable extraction & definitions
 
@@ -71,13 +77,7 @@ label_font_size = 30;
 legend_size = 30;
 title_font_size = 14;
 fig_size = 700;
-
-% Save Counter
-ss = 1;
-
-if ~isequal(Save_Figs, 0)
-    save_title = strings;
-end
+title_color =  'k';
 
 % Scatter Marker Shapes
 single_marker = '.';
@@ -101,17 +101,6 @@ end
 
 %% Loop through each of the experimental sessions
 for xx = 1:length(all_unit_names)
-
-    %% Add the monkey name to the title
-
-    if strcmp(Monkey, 'All')
-        fig_title = strcat('All Monkeys,', {' '});
-    else
-        fig_title = '';
-        for ii = 1:length(Monkey)
-            fig_title = strcat(fig_title, Monkey{ii}, ',', {' '});
-        end
-    end
 
     %% Extract the lines of best fit
 
@@ -137,6 +126,79 @@ for xx = 1:length(all_unit_names)
             Ellip_Err_Prob(scatter_x_axis, scatter_y_axis, err_percent);
     end
 
+    %% Axis & Title information
+
+    % Title info
+    Fig_Title = '';
+    if strcmp(Monkey, 'All')
+        Fig_Title = strcat('All Monkeys,', {' '});
+    end
+    if strcmp(Sampling_Params.trial_sessions, 'All')
+        for ii = 1:length(Monkey)
+            Fig_Title = strcat(Fig_Title, Monkey{ii}, ',', {' '});
+        end
+        Fig_Title = strcat(Fig_Title, {' '}, 'All Trials,', {' '}, Sampling_Params.drug_choice);
+        if strcmp(Sampling_Params.trial_task, 'PG')
+            Fig_Title = strcat(Fig_Title, {' '}, 'PG');
+        end
+        if strcmp(Sampling_Params.trial_task, 'KG')
+            Fig_Title = strcat(Fig_Title, {' '}, 'KG');
+        end
+        if strcmp(Sampling_Params.trial_task, 'WS')
+            Fig_Title = strcat(Fig_Title, {' '}, 'WS');
+        end
+        Fig_Title = strcat(Fig_Title, {' '}, fire_rate_phase);
+    else
+        if ~strcmp(Sampling_Params.drug_choice, 'Con')
+            Fig_Title = strcat(Fig_Title, file_names{xx}, {' '}, string(drug_dose{xx}(1)));
+        else
+            Fig_Title = strcat(Fig_Title, file_names{xx});
+        end
+    end
+
+    % Simplified title
+    if ~isequal(simp_title, 0)
+        if strcmp(Sampling_Params.drug_choice, 'Lex')
+            title_color = [0 0.5 0];
+            Fig_Title = 'Escitalopram';
+        end
+        if strcmp(Sampling_Params.drug_choice, 'Caff')
+            title_color = [0 0.5 0];
+            Fig_Title = 'Caffeine';
+        end
+        if strcmp(Sampling_Params.drug_choice, 'Cyp')
+            title_color =  'r';
+            Fig_Title = 'Cyproheptadine';
+        end
+        if strcmp(Sampling_Params.drug_choice, 'Con')
+            title_color =  'k';
+            Fig_Title = 'Control';
+        end
+        if contains(Sampling_Params.drug_choice, '202')
+            Fig_Title = strcat(Fig_Title, file_names{xx});
+        end
+    end
+
+    % Label info
+    if strcmp(fire_rate_phase, 'bsfr')
+        label_addition = 'Baseline Firing Rate (Hz)';
+    end
+    if strcmp(fire_rate_phase, 'ramp')
+        label_addition = 'Ramp Firing Rate (Hz)';
+    end
+    if strcmp(fire_rate_phase, 'TgtHold')
+        label_addition = 'TgtHold Firing Rate (Hz)';
+    end
+    if strcmp(fire_rate_phase, 'Peak')
+        label_addition = 'Peak Firing Rate (Hz)';
+    end
+    if strcmp(fire_rate_phase, 'depth')
+        label_addition = 'Depth of Modulation (Hz)';
+    end
+    if strcmp(fire_rate_phase, 'EMG_amp')
+        label_addition = 'Peak EMG Amplitude';
+    end
+
     %% Plot the Depth of Modulation Scatter
 
     scatter_fig = figure;
@@ -151,25 +213,7 @@ for xx = 1:length(all_unit_names)
     %plot(x,y, 'r', 'LineWidth', 2)
 
     % Set the title
-    if strcmp(Sampling_Params.trial_sessions, 'Ind')
-        if ~strcmp(Sampling_Params.drug_choice, 'Con')
-            title(strcat(fig_title, file_names{xx}, {' '}, string(drug_dose{xx}(1))), 'FontSize', title_font_size)
-        else
-            title(strcat(fig_title, file_names{xx}), 'FontSize', title_font_size)
-        end
-    elseif strcmp(Sampling_Params.trial_sessions, 'All')
-        scatter_title = strcat('All Trials,', {' '}, Sampling_Params.drug_choice);
-        if strcmp(Sampling_Params.trial_task, 'PG')
-            scatter_title = strcat(scatter_title, {' '}, 'PG');
-        end
-        if strcmp(Sampling_Params.trial_task, 'KG')
-            scatter_title = strcat(scatter_title, {' '}, 'KG');
-        end
-        if strcmp(Sampling_Params.trial_task, 'WS')
-            scatter_title = strcat(scatter_title, {' '}, 'WS');
-        end
-        title(strcat(fig_title, scatter_title, {' '}, fire_rate_phase), 'FontSize', title_font_size)
-    end
+    title(Fig_Title, 'FontSize', title_font_size, 'Color', title_color, 'Interpreter', 'none')
 
     % Axis Editing
     figure_axes = gca;
@@ -181,26 +225,8 @@ for xx = 1:length(all_unit_names)
     figure_axes.FontSize = label_font_size - 5;
 
     % Label the axis
-    if strcmp(fire_rate_phase, 'bsfr')
-        xlabel('Morning Baseline Firing Rate (Hz)', 'FontSize', label_font_size);
-        ylabel('Afternoon Baseline Firing Rate (Hz)', 'FontSize', label_font_size);
-    end
-    if strcmp(fire_rate_phase, 'ramp')
-        xlabel('Morning Ramp Firing Rate (Hz)', 'FontSize', label_font_size);
-        ylabel('Afternoon Ramp Firing Rate (Hz)', 'FontSize', label_font_size);
-    end
-    if strcmp(fire_rate_phase, 'TgtHold')
-        xlabel('Morning TgtHold Firing Rate (Hz)', 'FontSize', label_font_size);
-        ylabel('Afternoon TgtHold Firing Rate (Hz)', 'FontSize', label_font_size);
-    end
-    if strcmp(fire_rate_phase, 'Peak')
-        xlabel('Morning Peak Firing Rate (Hz)', 'FontSize', label_font_size);
-        ylabel('Afternoon Peak Firing Rate (Hz)', 'FontSize', label_font_size);
-    end
-    if strcmp(fire_rate_phase, 'depth')
-        xlabel('Morning Depth of Modulation (Hz)', 'FontSize', label_font_size);
-        ylabel('Afternoon Depth of Modulation (Hz)', 'FontSize', label_font_size);
-    end
+    xlabel(strcat('Morning', {' '}, label_addition), 'FontSize', label_font_size);
+    ylabel(strcat('Afternoon', {' '}, label_addition), 'FontSize', label_font_size);
 
     % Calculate the axis limits
     min_err_morn = min(fire_rate_morn{xx} - fire_rate_err_morn{xx});
@@ -231,12 +257,21 @@ for xx = 1:length(all_unit_names)
             marker_metric = single_marker;
             sz = single_marker_size;
         end
+        if strcmp(fire_rate_phase, 'EMG_amp')
+            marker_metric = single_marker;
+            sz = single_marker_size;
+        end
 
         scatter(fire_rate_morn{xx}(jj), fire_rate_noon{xx}(jj), sz, marker_metric, 'MarkerEdgeColor', ... 
             [color_metric 0 0], 'MarkerFaceColor', [color_metric 0 0], 'LineWidth', 1.5);
         if isequal(unit_label, 1)
-            text(fire_rate_morn{xx}(jj) + 1.5, fire_rate_noon{xx}(jj) - 1.5, ...
-                extractAfter(all_unit_names{xx}(jj), "elec"));
+            if strcmp(fire_rate_phase, 'EMG_amp')
+                text(fire_rate_morn{xx}(jj) + 1.5, fire_rate_noon{xx}(jj) - 1.5, ...
+                    all_emg_names{xx}(jj));
+            else
+                text(fire_rate_morn{xx}(jj) + 1.5, fire_rate_noon{xx}(jj) - 1.5, ...
+                    extractAfter(all_unit_names{xx}(jj), "elec"));
+            end
         end
 
         % Error
@@ -305,34 +340,6 @@ for xx = 1:length(all_unit_names)
     xlim([axis_min - 10, axis_max + 10])
     ylim([axis_min - 10, axis_max + 10])
 
-    if ~isequal(Save_Figs, 0)
-        fig_info = get(gca,'title');
-        save_title(ss) = get(fig_info, 'string');
-        % Make the title the drug
-        if strcmp(Sampling_Params.drug_choice, 'Lex')
-            title_color = [0 0.5 0];
-            fig_title = 'Escitalopram';
-        end
-        if strcmp(Sampling_Params.drug_choice, 'Caff')
-            title_color = [0 0.5 0];
-            fig_title = 'Caffeine';
-        end
-        if strcmp(Sampling_Params.drug_choice, 'Cyp')
-            title_color =  'r';
-            fig_title = 'Cyproheptadine';
-        end
-        if strcmp(Sampling_Params.drug_choice, 'Con')
-            title_color =  'k';
-            fig_title = 'Control';
-        end
-        if contains(Sampling_Params.drug_choice, '202')
-            title_color =  'k';
-            fig_title = strcat(fig_title, file_names{xx});
-        end
-        title('');
-        %title(fig_title, 'Fontsize', save_title_font_size - 10, 'Color', title_color);
-    end
-
     % Plot the bottom right legend
     if isequal(plot_legends, 1)
         if strcmp(error_choice, 'best_fit')
@@ -381,8 +388,8 @@ for xx = 1:length(all_unit_names)
     end
 
     % Display the percent change & statistics
-    fire_rate_mean_morn = mean(fire_rate_morn{xx});
-    fire_rate_mean_noon = mean(fire_rate_noon{xx});
+    fire_rate_mean_morn = mean(fire_rate_morn{xx}, 'omitnan');
+    fire_rate_mean_noon = mean(fire_rate_noon{xx}, 'omitnan');
     if strcmp(stat_test, 'T-Test')
         [~, fire_rate_p_val] = ttest(fire_rate_morn{xx}, fire_rate_noon{xx});
     elseif strcmp(stat_test, 'Wilcox')
@@ -396,33 +403,10 @@ for xx = 1:length(all_unit_names)
     end
     fprintf('Effect size is %0.2f, p = %0.3f \n', fire_rate_effect_size, fire_rate_p_val)
 
-    % Add to the counter
-    ss = ss + 1;
+    %% Save the file if selected
+    Save_Figs(Fig_Title, Save_File)
 
 end % End the xds loop
-
-%% Define the save directory & save the figures
-if ~isequal(Save_Figs, 0)
-    save_dir = 'C:\Users\rhpow\Desktop\';
-    for ii = numel(findobj('type','figure')):-1:1
-        save_title(ii) = strrep(save_title(ii), ':', '');
-        save_title(ii) = strrep(save_title(ii), '.0', '');
-        save_title(ii) = strrep(save_title(ii), 'vs.', 'vs');
-        save_title(ii) = strrep(save_title(ii), 'mg.', 'mg');
-        save_title(ii) = strrep(save_title(ii), 'kg.', 'kg');
-        save_title(ii) = strrep(save_title(ii), '.', '_');
-        save_title(ii) = strrep(save_title(ii), '/', '_');
-        if ~strcmp(Save_Figs, 'All')
-            saveas(gcf, fullfile(save_dir, char(save_title(ii))), Save_Figs)
-        end
-        if strcmp(Save_Figs, 'All')
-            saveas(gcf, fullfile(save_dir, char(save_title(ii))), 'png')
-            saveas(gcf, fullfile(save_dir, char(save_title(ii))), 'pdf')
-            saveas(gcf, fullfile(save_dir, char(save_title(ii))), 'fig')
-        end
-        close gcf
-    end
-end
 
 
 
