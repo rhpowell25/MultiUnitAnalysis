@@ -13,14 +13,9 @@ function Plot_Unit_Metric(Monkey, Sampling_Params, Save_File)
 % 'nonlin_sigtonoise', 'nonlin_peaktopeak', 'spike_width', 'repol_time'
 metric_choice = 'alignment_morn';
 
-% Font specifications
-label_font_size = 30;
-legend_size = 25;
-mean_line_width = 5;
+% Font & plotting specifications
+[Plot_Params] = Plot_Parameters;
 n_value_dims = [0.55 0.45 0.44 0.44];
-title_font_size = 14;
-font_name = 'Arial';
-fig_size = 700;
 
 % Save the figures to your desktop? ('All', 'pdf', 'png', 'fig', 0 = No)
 if ~isequal(Save_File, 0)
@@ -65,7 +60,7 @@ for xx = 1:length(all_unit_names)
 
     % Merged
     unit_metric_fig = figure;
-    unit_metric_fig.Position = [200 50 fig_size fig_size];
+    unit_metric_fig.Position = [200 50 Plot_Params.fig_size Plot_Params.fig_size];
     hold on
 
     histogram(unit_metric{xx,1}, 15, 'EdgeColor', 'k', 'FaceColor', [.7 .7 .7])
@@ -78,14 +73,15 @@ for xx = 1:length(all_unit_names)
 
     % Plot the mean
     line([unit_metric_mean, unit_metric_mean], [y_limits(1), y_limits(2) + 0.25], ... 
-        'LineStyle','--', 'Color', 'k', 'LineWidth', mean_line_width)
+        'LineStyle','--', 'Color', 'k', 'LineWidth', Plot_Params.mean_line_width)
 
     % Set the title
     if strcmp(Sampling_Params.trial_sessions, 'Ind')
         if ~strcmp(Sampling_Params.drug_choice, 'Con')
-            title(strcat(Fig_Title, file_names{xx}, {' '}, string(drug_dose{xx}(1))), 'FontSize', title_font_size)
+            title(strcat(Fig_Title, file_names{xx}, {' '}, string(drug_dose{xx}(1))), ...
+                'FontSize', Plot_Params.title_font_size)
         else
-            title(strcat(Fig_Title, file_names{xx}), 'FontSize', title_font_size)
+            title(strcat(Fig_Title, file_names{xx}), 'FontSize', Plot_Params.title_font_size)
         end
     elseif strcmp(Sampling_Params.trial_sessions, 'All')
         scatter_title = strcat('All Trials,', {' '}, Sampling_Params.drug_choice);
@@ -98,7 +94,8 @@ for xx = 1:length(all_unit_names)
         if strcmp(Sampling_Params.trial_task, 'WS')
             scatter_title = strcat(scatter_title, {' '}, 'WS');
         end
-        title(strcat(Fig_Title, scatter_title, {' '}, metric_choice), 'FontSize', title_font_size, 'Interpreter', 'none')
+        title(strcat(Fig_Title, scatter_title, {' '}, metric_choice), ...
+            'FontSize', Plot_Params.title_font_size, 'Interpreter', 'none')
     end
 
     % Axis Editing
@@ -108,11 +105,11 @@ for xx = 1:length(all_unit_names)
     % Remove the top and right tick marks
     set(figure_axes,'box','off')
     % Set the tick label font size
-    figure_axes.FontSize = label_font_size - 15;
+    figure_axes.FontSize = Plot_Params.label_font_size - 15;
 
     % Label the axis
-    ylabel('Units', 'FontSize', label_font_size)
-    xlabel(metric_choice, 'FontSize', label_font_size, 'Interpreter', 'none')
+    ylabel('Units', 'FontSize', Plot_Params.label_font_size)
+    xlabel(metric_choice, 'FontSize', Plot_Params.label_font_size, 'Interpreter', 'none')
     
     % Annotation of the n_value
     n_value_string = strcat('n =', {' '}, mat2str(round(fire_rate_n_val, 3)));
@@ -120,8 +117,8 @@ for xx = 1:length(all_unit_names)
     ann_n_value = annotation('textbox', n_value_dims, 'String', n_value_string, ...
         'FitBoxToText', 'on', 'verticalalignment', 'top', ... 
         'EdgeColor','none', 'horizontalalignment', 'center');
-    ann_n_value.FontSize = legend_size;
-    ann_n_value.FontName = font_name;
+    ann_n_value.FontSize = Plot_Params.legend_size;
+    ann_n_value.FontName = Plot_Params.font_name;
     
     % Only label every other tick
     x_labels = string(figure_axes.XAxis.TickLabels);

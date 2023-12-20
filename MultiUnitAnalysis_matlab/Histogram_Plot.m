@@ -51,10 +51,8 @@ all_unit_names = split_depth_excel{strcmp(column_names, 'unit_names')};
 
 %% Some variable extraction & definitions
 
-% Font specifications
-label_font_size = 30;
-legend_size = 30;
-mean_line_width = 5;
+% Font & plotting specifications
+[Plot_Params] = Plot_Parameters;
 if isequal(plot_legend, 1)
     p_value_dims = [0.51 0.3 0.44 0.44];
     n_value_dims = [0.49 0.225 0.44 0.44];
@@ -62,10 +60,6 @@ else
     p_value_dims = [0.51 0.45 0.44 0.44];
     n_value_dims = [0.49 0.375 0.44 0.44];
 end
-title_font_size = 14;
-font_name = 'Arial';
-fig_size = 700;
-title_color =  'k';
 
 %% Run through each experiment seperately
 
@@ -110,19 +104,19 @@ for xx = 1:length(all_unit_names)
     % Simplified title
     if ~isequal(simp_title, 0)
         if strcmp(Sampling_Params.drug_choice, 'Lex')
-            title_color = [0 0.5 0];
+            Plot_Params.title_color = [0 0.5 0];
             Fig_Title = 'Escitalopram';
         end
         if strcmp(Sampling_Params.drug_choice, 'Caff')
-            title_color = [0 0.5 0];
+            Plot_Params.title_color = [0 0.5 0];
             Fig_Title = 'Caffeine';
         end
         if strcmp(Sampling_Params.drug_choice, 'Cyp')
-            title_color =  'r';
+            Plot_Params.title_color =  'r';
             Fig_Title = 'Cyproheptadine';
         end
         if strcmp(Sampling_Params.drug_choice, 'Con')
-            title_color =  'k';
+            Plot_Params.title_color =  'k';
             Fig_Title = 'Control';
         end
         if contains(Sampling_Params.drug_choice, '202')
@@ -172,12 +166,13 @@ for xx = 1:length(all_unit_names)
 
     % Merged
     fire_rate_fig = figure;
-    fire_rate_fig.Position = [200 50 fig_size fig_size];
+    fire_rate_fig.Position = [200 50 Plot_Params.fig_size Plot_Params.fig_size];
     hold on
 
     histogram(fire_rate_morn{xx,1}, 15, 'EdgeColor', 'k', 'FaceColor', [0.9290, 0.6940, 0.1250])
     histogram(fire_rate_noon{xx,1}, 15, 'EdgeColor', 'k', 'FaceColor', [.5 0 .5])
 
+    disp(strcat(Monkey, {' '}, Sampling_Params.drug_choice, ':'))
     fprintf('Effect size is %0.2f, p = %0.3f \n', fire_rate_effect_size, fire_rate_p_val)
 
     % Set the axis
@@ -196,12 +191,14 @@ for xx = 1:length(all_unit_names)
 
     % Plot the means
     line([fire_rate_mean_morn fire_rate_mean_morn], [y_limits(1) y_limits(2) + 0.25], ... 
-        'LineStyle','--', 'Color', [0.9290, 0.6940, 0.1250], 'LineWidth', mean_line_width)
+        'LineStyle','--', 'Color', [0.9290, 0.6940, 0.1250], 'LineWidth', Plot_Params.mean_line_width)
     line([fire_rate_mean_noon fire_rate_mean_noon], [y_limits(1) y_limits(2) + 0.25], ... 
-        'LineStyle','--', 'Color', [.5 0 .5], 'LineWidth', mean_line_width)
+        'LineStyle','--', 'Color', [.5 0 .5], 'LineWidth', Plot_Params.mean_line_width)
         
     % Set the title
-    title(Fig_Title, 'FontSize', title_font_size, 'Color', title_color, 'Interpreter', 'none')
+    title(Fig_Title, 'FontSize', Plot_Params.title_font_size, 'Color', ...
+        Plot_Params.title_color, 'Interpreter', 'none')
+    %title('')
 
     % Axis Editing
     figure_axes = gca;
@@ -210,11 +207,13 @@ for xx = 1:length(all_unit_names)
     % Remove the top and right tick marks
     set(figure_axes,'box','off')
     % Set the tick label font size
-    figure_axes.FontSize = label_font_size - 15;
+    figure_axes.FontSize = Plot_Params.label_font_size;
+    % Set The Font
+    set(figure_axes,'fontname', Plot_Params.font_name);
 
     % Label the axis
-    ylabel('Units', 'FontSize', label_font_size)
-    xlabel(x_label, 'FontSize', label_font_size);
+    ylabel('Units', 'FontSize', Plot_Params.label_font_size)
+    xlabel(x_label, 'FontSize', Plot_Params.label_font_size);
 
     % Annotation of the p_value
     if round(fire_rate_p_val, 3) > 0
@@ -223,8 +222,8 @@ for xx = 1:length(all_unit_names)
         ann_p_value = annotation('textbox', p_value_dims, 'String', p_value_string, ... 
             'FitBoxToText', 'on', 'verticalalignment', 'top', ... 
             'EdgeColor','none', 'horizontalalignment', 'center');
-        ann_p_value.FontSize = legend_size;
-        ann_p_value.FontName = font_name;
+        ann_p_value.FontSize = Plot_Params.legend_size;
+        ann_p_value.FontName = Plot_Params.font_name;
     end
 
     if isequal(round(fire_rate_p_val, 3), 0)
@@ -233,8 +232,8 @@ for xx = 1:length(all_unit_names)
         ann_p_value = annotation('textbox', p_value_dims, 'String', p_value_string, ...
             'FitBoxToText', 'on', 'verticalalignment', 'top', ... 
             'EdgeColor','none', 'horizontalalignment', 'center');
-        ann_p_value.FontSize = legend_size;
-        ann_p_value.FontName = font_name;
+        ann_p_value.FontSize = Plot_Params.legend_size;
+        ann_p_value.FontName = Plot_Params.font_name;
     end
 
     % Annotation of the n_value
@@ -243,13 +242,13 @@ for xx = 1:length(all_unit_names)
     ann_n_value = annotation('textbox', n_value_dims, 'String', n_value_string, ...
         'FitBoxToText', 'on', 'verticalalignment', 'top', ... 
         'EdgeColor','none', 'horizontalalignment', 'center');
-    ann_n_value.FontSize = legend_size;
-    ann_n_value.FontName = font_name;
+    ann_n_value.FontSize = Plot_Params.legend_size;
+    ann_n_value.FontName = Plot_Params.font_name;
 
     if isequal(plot_legend, 1)
         legend([dummy_morn, dummy_noon], ... 
             {'Morning', 'Afternoon'}, ... 
-            'FontSize', legend_size, 'Location', 'NorthEast')
+            'FontSize', Plot_Params.legend_size, 'Location', 'NorthEast')
         legend boxoff
     end
 
@@ -262,6 +261,7 @@ for xx = 1:length(all_unit_names)
     figure_axes.YAxis.TickLabels = y_labels;
 
     %% Save the file if selected
+    Fig_Title = strcat(Fig_Title, {' '}, 'Hist');
     Save_Figs(Fig_Title, Save_File)
 
 end

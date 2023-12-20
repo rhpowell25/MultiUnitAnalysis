@@ -32,7 +32,7 @@ for xx = 1:length(Dates)
     xds_noon = Load_XDS(Monkey, Dates{xx,1}, Tasks{xx,1}, Sorted, 'Noon');
 
     % Process the xds files
-    Match_The_Targets = 0;
+    Match_The_Targets = 1;
     [xds_morn, xds_noon] = Process_XDS(xds_morn, xds_noon, Match_The_Targets);
 
     %% Build the output arrays
@@ -84,9 +84,9 @@ for xx = 1:length(Dates)
             RampFiringRate(xds_noon, unit_name);
 
         %% Get the target hold firing rates
-        [avg_TgtHold_morn, ~, pertrial_TgtHold_morn] = ...
+        [avg_TgtHold_morn, ~, ~, pertrial_TgtHold_morn] = ...
             EventPeakFiringRate(xds_morn, unit_name, 'TgtHold');
-        [avg_TgtHold_noon, ~, pertrial_TgtHold_noon] = ...
+        [avg_TgtHold_noon, ~, ~, pertrial_TgtHold_noon] = ...
             EventPeakFiringRate(xds_noon, unit_name, 'TgtHold');
 
         %% Find the standard error of the target hold firing rates
@@ -104,8 +104,10 @@ for xx = 1:length(Dates)
         [target_dirs_morn, target_centers_morn] = Identify_Targets(xds_morn);
         [target_dirs_noon, target_centers_noon] = Identify_Targets(xds_noon);
 
-        phase_idx_morn = intersect(find(target_dirs_morn == pref_dir), find(target_centers_morn == target_center));
-        phase_idx_noon = intersect(find(target_dirs_noon == pref_dir), find(target_centers_noon == target_center));
+        phase_idx_morn = intersect(find(target_dirs_morn == pref_dir), ...
+            find(target_centers_morn == target_center));
+        phase_idx_noon = intersect(find(target_dirs_noon == pref_dir), ...
+            find(target_centers_noon == target_center));
 
         %% Phasic firing rates at the preferred direction & target center
 

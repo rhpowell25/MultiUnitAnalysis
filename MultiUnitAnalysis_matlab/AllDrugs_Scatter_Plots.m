@@ -41,16 +41,12 @@ each_unit = 0;
 drug_leg = 0;
 
 % Save the figures to your desktop? (1 = Yes, 0 = No)
-Save_Figs = 0;
+Save_File = 0;
 
 %% Some variable extraction & definitions
 
-% Font Sizes
-label_font_size = 17;
-legend_font_size = 13;
-title_font_size = 24;
-save_title_font_size = 24;
-font_name = 'Arial';
+% Font & plotting specifications
+[Plot_Params] = Plot_Parameters;
 
 %% Generate the figure
 
@@ -58,11 +54,12 @@ figure
 hold on
 
 % Set the title
-title('Depth of Modulation:', 'FontSize', title_font_size)
+Fig_Title = 'Depth of Modulation:';
+title(Fig_Title, 'FontSize', Plot_Params.title_font_size)
 
 % Label the axes
-xlabel('Morning Depth of Modulation (Hz)', 'FontSize', label_font_size);
-ylabel('Afternoon Depth of Modulation (Hz)', 'FontSize', label_font_size);
+xlabel('Morning Depth of Modulation (Hz)', 'FontSize', Plot_Params.label_font_size);
+ylabel('Afternoon Depth of Modulation (Hz)', 'FontSize', Plot_Params.label_font_size);
 
 % Set up a struct for the elliptical error information
 ellipsis_specs = zeros(4,4);
@@ -215,7 +212,7 @@ if isequal(drug_leg, 1)
     % Plot the legend
     legend([dummy_orange, dummy_red, dummy_blue, dummy_black], ... 
         {'Lexapro', 'Caffeine', 'Cyproheptadine', 'Control'}, ... 
-        'FontSize', legend_font_size, 'Location', 'southeast')
+        'FontSize', Plot_Params.legend_size, 'Location', 'southeast')
     legend boxoff
 
 end
@@ -233,46 +230,10 @@ set(figure_axes,'TickDir','out');
 % Remove the top and right tick marks
 set(figure_axes,'box','off')
 % Set The Font
-set(figure_axes,'fontname', font_name);
+set(figure_axes,'fontname', Plot_Params.font_name);
 
-%% Define the save directory & save the figures
-if ~isequal(Save_Figs, 0)
-    save_dir = 'C:\Users\rhpow\Desktop\';
-    for ii = 1:length(findobj('type','figure'))
-        fig_info = get(gca,'title');
-        save_title = get(fig_info, 'string');
-        % Make the title the drug
-        if strcmp(Drug_Choice, 'Lex')
-            fig_title = 'Escitalopram';
-        end
-        if strcmp(Drug_Choice, 'Caff')
-            fig_title = 'Caffeine';
-        end
-        if strcmp(Drug_Choice, 'Cyp')
-            fig_title = 'Cyproheptadine';
-        end
-        if strcmp(Drug_Choice, 'Con')
-            fig_title = 'Control';
-        end
-        title(fig_title, 'Fontsize', save_title_font_size);
-        save_title = strrep(save_title, ':', '');
-        save_title = strrep(save_title, 'vs.', 'vs');
-        save_title = strrep(save_title, 'mg.', 'mg');
-        save_title = strrep(save_title, 'kg.', 'kg');
-        save_title = strrep(save_title, '.', '_');
-        save_title = strrep(save_title, '/', '_');
-        if ~strcmp(Save_Figs, 'All')
-            saveas(gcf, fullfile(save_dir, char(save_title(ii))), Save_Figs)
-        end
-        if strcmp(Save_Figs, 'All')
-            saveas(gcf, fullfile(save_dir, char(save_title(ii))), 'png')
-            saveas(gcf, fullfile(save_dir, char(save_title(ii))), 'pdf')
-            saveas(gcf, fullfile(save_dir, char(save_title(ii))), 'fig')
-        end
-        close gcf
-    end
-end
-
+%% Save the file if selected
+Save_Figs(Fig_Title, Save_File)
             
 
 

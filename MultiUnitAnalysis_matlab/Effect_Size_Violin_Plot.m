@@ -15,7 +15,7 @@ remove_outliers = 1;
 
 % Do you want to manually set the y-axis?
 man_y_axis = 'No';
-%man_y_axis = [-100, 120];
+%man_y_axis = [-0.7, 0.3];
 
 % What effect size meausure do you want to use ('Perc', 'Cohen')
 effect_sz_test = 'Cohen';
@@ -69,18 +69,12 @@ all_unit_names = split_depth_excel{strcmp(column_names, 'unit_names')};
 
 %% Some variable extraction & definitions
 
-% Font specifications
-label_font_size = 30;
-zero_line_width = 2;
-legend_size = 20;
+% Font & plotting specifications
+[Plot_Params] = Plot_Parameters;
 effect_size_dims = [0.7 0.375 0.44 0.44];
 if isequal(remove_outliers, 1)
     outlier_ann_dims = [0.7 0.325 0.44 0.44];
 end
-title_font_size = 14;
-font_name = 'Arial';
-fig_size = 700;
-title_color =  'k';
 
 %% Loop through each of the experimental sessions
 for xx = 1:length(all_unit_names)
@@ -124,19 +118,19 @@ for xx = 1:length(all_unit_names)
     % Simplified title
     if ~isequal(simp_title, 0)
         if strcmp(Sampling_Params.drug_choice, 'Lex')
-            title_color = [0 0.5 0];
+            Plot_Params.title_color = [0 0.5 0];
             Fig_Title = 'Escitalopram';
         end
         if strcmp(Sampling_Params.drug_choice, 'Caff')
-            title_color = [0 0.5 0];
+            Plot_Params.title_color = [0 0.5 0];
             Fig_Title = 'Caffeine';
         end
         if strcmp(Sampling_Params.drug_choice, 'Cyp')
-            title_color =  'r';
+            Plot_Params.title_color =  'r';
             Fig_Title = 'Cyproheptadine';
         end
         if strcmp(Sampling_Params.drug_choice, 'Con')
-            title_color =  'k';
+            Plot_Params.title_color =  'k';
             Fig_Title = 'Control';
         end
         if contains(Sampling_Params.drug_choice, '202')
@@ -173,7 +167,7 @@ for xx = 1:length(all_unit_names)
     end
 
     violin_fig = figure;
-    violin_fig.Position = [200 50 fig_size fig_size];
+    violin_fig.Position = [200 50 Plot_Params.fig_size Plot_Params.fig_size];
     hold on
     effect_positions = (1:length(effect_sizes{xx,1}));
     Violin_Plot(effect_sizes(xx,1), effect_positions, 'ViolinColor', violin_color);
@@ -184,13 +178,14 @@ for xx = 1:length(all_unit_names)
     end
     xlim([0.5, 1.5])
 
-    ylabel('Effect Size', 'FontSize', label_font_size)
+    ylabel('Effect Size', 'FontSize', Plot_Params.label_font_size)
 
     % Draw the unity line 
-    line([0.5, 1.5], [0, 0], 'Color', 'k', 'Linewidth', zero_line_width, 'Linestyle','--')
+    line([0.5, 1.5], [0, 0], 'Color', 'k', 'Linewidth', Plot_Params.mean_line_width, 'Linestyle','--')
 
     % Set the title
-    title(Fig_Title, 'FontSize', title_font_size, 'Color', title_color, 'Interpreter', 'none')
+    title(Fig_Title, 'FontSize', Plot_Params.title_font_size, 'Color', Plot_Params.title_color, 'Interpreter', 'none')
+    title('')
 
     % Axis Editing
     figure_axes = gca;
@@ -199,7 +194,9 @@ for xx = 1:length(all_unit_names)
     % Remove the top and right tick marks
     set(figure_axes,'box','off')
     % Set the tick label font size
-    figure_axes.FontSize = label_font_size - 10;
+    figure_axes.FontSize = Plot_Params.label_font_size;
+    % Set The Font
+    set(figure_axes,'fontname', Plot_Params.font_name);
 
     % Only label every other tick
     x_labels = string(figure_axes.XAxis.TickLabels);
@@ -222,8 +219,8 @@ for xx = 1:length(all_unit_names)
     effect_ann = annotation('textbox', effect_size_dims, 'String', effect_ann_string, ... 
         'FitBoxToText', 'on', 'verticalalignment', 'top', ... 
         'EdgeColor','none', 'horizontalalignment', 'Left');
-    effect_ann.FontSize = legend_size;
-    effect_ann.FontName = font_name;
+    effect_ann.FontSize = Plot_Params.legend_size;
+    effect_ann.FontName = Plot_Params.font_name;
 
     % Annotation of the outliers removed
     if isequal(remove_outliers, 1)
@@ -236,11 +233,12 @@ for xx = 1:length(all_unit_names)
         outlier_ann = annotation('textbox', outlier_ann_dims, 'String', outlier_ann_string, ... 
             'FitBoxToText', 'on', 'verticalalignment', 'top', ... 
             'EdgeColor','none', 'horizontalalignment', 'Left');
-        outlier_ann.FontSize = legend_size;
-        outlier_ann.FontName = font_name;
+        outlier_ann.FontSize = Plot_Params.legend_size;
+        outlier_ann.FontName = Plot_Params.font_name;
     end
 
     %% Save the file if selected
+    Fig_Title = strcat(Fig_Title, {' '}, 'Violin');
     Save_Figs(Fig_Title, Save_File)
     
 end % End the xds loop

@@ -11,7 +11,7 @@ function Scatter_Plot(Monkey, Sampling_Params, Save_File)
 fire_rate_phase = 'depth';
 
 % Do you want to plot the legends? (1 = Yes, 0 = No)
-plot_legends = 0;
+plot_legends = 1;
 
 % Best fit or elliptial error probable? ('none', 'best_fit', or 'ellip_err_prob')
 error_choice = 'none';
@@ -23,7 +23,7 @@ stat_test = 'T-Test';
 effect_sz_test = 'Perc_Change';
 
 % Do you want the name of each unit labeled? (1 = Yes, 0 = No)
-unit_label = 1;
+unit_label = 0;
 
 % Do you want to plot the hypothesis arrows? (1 = Yes, 0 = No)
 hypo_arrows = 0;
@@ -72,12 +72,8 @@ end
 
 %% Some variable extraction & definitions
 
-% Font specifications
-label_font_size = 30;
-legend_size = 30;
-title_font_size = 14;
-fig_size = 700;
-title_color =  'k';
+% Font & plotting specifications
+[Plot_Params] = Plot_Parameters;
 
 % Scatter Marker Shapes
 single_marker = '.';
@@ -159,19 +155,19 @@ for xx = 1:length(all_unit_names)
     % Simplified title
     if ~isequal(simp_title, 0)
         if strcmp(Sampling_Params.drug_choice, 'Lex')
-            title_color = [0 0.5 0];
+            Plot_Params.title_color = [0 0.5 0];
             Fig_Title = 'Escitalopram';
         end
         if strcmp(Sampling_Params.drug_choice, 'Caff')
-            title_color = [0 0.5 0];
+            Plot_Params.title_color = [0 0.5 0];
             Fig_Title = 'Caffeine';
         end
         if strcmp(Sampling_Params.drug_choice, 'Cyp')
-            title_color =  'r';
+            Plot_Params.title_color =  'r';
             Fig_Title = 'Cyproheptadine';
         end
         if strcmp(Sampling_Params.drug_choice, 'Con')
-            title_color =  'k';
+            Plot_Params.title_color =  'k';
             Fig_Title = 'Control';
         end
         if contains(Sampling_Params.drug_choice, '202')
@@ -202,7 +198,7 @@ for xx = 1:length(all_unit_names)
     %% Plot the Depth of Modulation Scatter
 
     scatter_fig = figure;
-    scatter_fig.Position = [200 50 fig_size fig_size];
+    scatter_fig.Position = [200 50 Plot_Params.fig_size Plot_Params.fig_size];
     hold on
 
     % Plot a circle (x-a) = rcos(t) / (y-b) = rsin(t)
@@ -213,7 +209,9 @@ for xx = 1:length(all_unit_names)
     %plot(x,y, 'r', 'LineWidth', 2)
 
     % Set the title
-    title(Fig_Title, 'FontSize', title_font_size, 'Color', title_color, 'Interpreter', 'none')
+    title(Fig_Title, 'FontSize', Plot_Params.title_font_size, ...
+        'Color', Plot_Params.title_color, 'Interpreter', 'none')
+    %title('')
 
     % Axis Editing
     figure_axes = gca;
@@ -222,11 +220,13 @@ for xx = 1:length(all_unit_names)
     % Remove the top and right tick marks
     set(figure_axes,'box','off')
     % Set the tick label font size
-    figure_axes.FontSize = label_font_size - 5;
+    figure_axes.FontSize = Plot_Params.label_font_size;
+    % Set The Font
+    set(figure_axes,'fontname', Plot_Params.font_name);
 
     % Label the axis
-    xlabel(strcat('Morning', {' '}, label_addition), 'FontSize', label_font_size);
-    ylabel(strcat('Afternoon', {' '}, label_addition), 'FontSize', label_font_size);
+    xlabel(strcat('Morning', {' '}, label_addition), 'FontSize', Plot_Params.label_font_size);
+    ylabel(strcat('Afternoon', {' '}, label_addition), 'FontSize', Plot_Params.label_font_size);
 
     % Calculate the axis limits
     min_err_morn = min(fire_rate_morn{xx} - fire_rate_err_morn{xx});
@@ -322,16 +322,16 @@ for xx = 1:length(all_unit_names)
     % Plot dummy points for the bottom right legend
     if isequal(plot_legends, 1)
         if isfield(Sampling_Params,'depth_sig') && strcmp(Sampling_Params.depth_sig, 'All')
-            dummy_insig = plot(-50, -50, single_marker, 'MarkerSize', legend_size + 15, ...
+            dummy_insig = plot(-50, -50, single_marker, 'MarkerSize', Plot_Params.legend_size + 15, ...
                 'MarkerEdgeColor', [insig_color, 0, 0], 'MarkerFaceColor',[1, 0, 0], 'LineWidth', 1.5);
-            dummy_sig = plot(-55, -55, single_marker, 'MarkerSize', legend_size + 15, ...
+            dummy_sig = plot(-55, -55, single_marker, 'MarkerSize', Plot_Params.legend_size + 15, ...
                 'MarkerEdgeColor', [sig_color, 0, 0], 'MarkerFaceColor',[0, 0, 0], 'LineWidth', 1.5);
         end
         % Plot dummy points for the top left legend
-        dummy_single = plot(-57, -57, 'o', 'MarkerSize', legend_size - 15, ...
+        dummy_single = plot(-57, -57, 'o', 'MarkerSize', Plot_Params.legend_size - 15, ...
             'MarkerEdgeColor',[0, 0, 0], 'MarkerFaceColor', [0, 0, 0], 'LineWidth', 1.5);
         if isfield(Sampling_Params,'ISI_quality') && strcmp(Sampling_Params.ISI_quality, 'All')
-            dummy_multi = plot(-60, -60, multi_marker, 'MarkerSize', legend_size + 10, ...
+            dummy_multi = plot(-60, -60, multi_marker, 'MarkerSize', Plot_Params.legend_size + 10, ...
                 'MarkerEdgeColor',[0, 0, 0], 'MarkerFaceColor', [1, 1, 1], 'LineWidth', 1.5);
         end
     end
@@ -347,15 +347,15 @@ for xx = 1:length(all_unit_names)
             legend_best_fit = units_best_fit;
             right_legend = legend([dummy_insig, dummy_sig, legend_best_fit], ...
                 {'p > 0.05','p ≤ 0.05', legend_r_square}, ...
-                'FontSize', legend_size, 'Location', 'southeast');
-            right_legend.ItemTokenSize(1) = legend_size;
+                'FontSize', Plot_Params.legend_size, 'Location', 'southeast');
+            right_legend.ItemTokenSize(1) = Plot_Params.legend_size;
             legend boxoff
         else
             if isfield(Sampling_Params,'depth_sig') && strcmp(Sampling_Params.depth_sig, 'All')
                 right_legend = legend([dummy_insig, dummy_sig], ...
                     {'p > 0.05','p ≤ 0.05'}, ...
-                    'FontSize', legend_size, 'Location', 'southeast');
-                right_legend.ItemTokenSize(1) = legend_size;
+                    'FontSize', Plot_Params.legend_size, 'Location', 'southeast');
+                right_legend.ItemTokenSize(1) = Plot_Params.legend_size;
                 legend boxoff
             end
         end
@@ -378,12 +378,12 @@ for xx = 1:length(all_unit_names)
     if isequal(plot_legends, 1)
         if isfield(Sampling_Params,'ISI_quality') && strcmp(Sampling_Params.ISI_quality, 'All')
             left_legend = legend(legend_axes, [dummy_single, dummy_multi], {'Single Unit', 'Multi-Unit'}, ...
-                'FontSize', legend_size, 'Location', 'northwest');
+                'FontSize', Plot_Params.legend_size, 'Location', 'northwest');
         else
             left_legend = legend(legend_axes, (dummy_single), {'Single Unit'}, ...
-                'FontSize', legend_size, 'Location', 'northwest');
+                'FontSize', Plot_Params.legend_size, 'Location', 'northwest');
         end
-        left_legend.ItemTokenSize(1) = legend_size;
+        left_legend.ItemTokenSize(1) = Plot_Params.legend_size;
         legend boxoff
     end
 
@@ -404,6 +404,7 @@ for xx = 1:length(all_unit_names)
     fprintf('Effect size is %0.2f, p = %0.3f \n', fire_rate_effect_size, fire_rate_p_val)
 
     %% Save the file if selected
+    Fig_Title = strcat(Fig_Title, {' '}, 'Scatter');
     Save_Figs(Fig_Title, Save_File)
 
 end % End the xds loop

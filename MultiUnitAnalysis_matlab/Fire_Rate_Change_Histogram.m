@@ -58,11 +58,8 @@ all_unit_names = split_depth_excel{strcmp(column_names, 'unit_names')};
 
 %% Some variable extraction & definitions
 
-% Font specifications
-label_font_size = 30;
-legend_size = 20;
-mean_line_width = 5;
-title_font_size = 14;
+% Font & plotting specifications
+[Plot_Params] = Plot_Parameters;
 
 % Bar color
 if strcmp(Sampling_Params.drug_choice, 'Caff') || strcmp(Sampling_Params.drug_choice, 'Lex')
@@ -108,8 +105,8 @@ for xx = 1:length(all_unit_names)
     insig_idx = find(depth_p_value{xx} > 0.05);
 
     % Label the axis
-    xlabel('Change In Firing Rate', 'FontSize', label_font_size);
-    ylabel('Units', 'FontSize', label_font_size);
+    xlabel('Change In Firing Rate', 'FontSize', Plot_Params.label_font_size);
+    ylabel('Units', 'FontSize', Plot_Params.label_font_size);
 
     % Set the edge size
     x_min = min(fire_rate_change);
@@ -147,14 +144,15 @@ for xx = 1:length(all_unit_names)
     % Remove the top and right tick marks
     set(figure_axes,'box','off')
     % Set the tick label font size
-    figure_axes.FontSize = label_font_size - 5;
+    figure_axes.FontSize = Plot_Params.label_font_size - 5;
 
     % Set the title
     if strcmp(Sampling_Params.trial_sessions, 'Ind')
         if ~strcmp(Sampling_Params.drug_choice, 'Con')
-            title(strcat(Fig_Title, file_names{xx}, {' '}, string(drug_dose{xx}(1))), 'FontSize', title_font_size)
+            title(strcat(Fig_Title, file_names{xx}, {' '}, string(drug_dose{xx}(1))), ...
+                'FontSize', Plot_Params.title_font_size)
         else
-            title(strcat(Fig_Title, file_names{xx}), 'FontSize', title_font_size)
+            title(strcat(Fig_Title, file_names{xx}), 'FontSize', Plot_Params.title_font_size)
         end
     elseif strcmp(Sampling_Params.trial_sessions, 'All')
         scatter_title = strcat('All Tasks,', {' '}, Drug_Choice);
@@ -164,14 +162,15 @@ for xx = 1:length(all_unit_names)
         if strcmp(Sampling_Params.trial_task, 'WS')
             scatter_title = strcat(scatter_title, {' '}, 'WS');
         end
-        title(strcat(Fig_Title, scatter_title, {' '}, 'Depth'), 'FontSize', title_font_size)
+        title(strcat(Fig_Title, scatter_title, {' '}, 'Depth'), 'FontSize', Plot_Params.title_font_size)
     end
 
     % Draw the zero depth change line
-    line([0,0],[y_limits(1), y_limits(2) + 1], 'Color', [.7 .7 .7], 'Linewidth', mean_line_width, 'Linestyle','--');
+    line([0,0],[y_limits(1), y_limits(2) + 1], 'Color', [.7 .7 .7], ...
+        'Linewidth', Plot_Params.mean_line_width, 'Linestyle','--');
     % Draw the mean change in depth line
     line([depth_mean, depth_mean], [y_limits(1), y_limits(2) + 1], ... 
-        'Color', bar_color, 'Linewidth', mean_line_width - 1, 'Linestyle','--');
+        'Color', bar_color, 'Linewidth', Plot_Params.mean_line_width - 1, 'Linestyle','--');
 
     % Plot dummy points for the right legend
     dummy_sig = plot(-12,-12, '.', 'MarkerSize',20, ...
@@ -181,8 +180,8 @@ for xx = 1:length(all_unit_names)
  
     % Plot the right legend
     right_legend = legend([dummy_sig, dummy_grey], {'p ≤ 0.05', 'p > 0.05'}, ...
-        'FontSize', legend_size, 'Location', 'northeast');
-    right_legend.ItemTokenSize(1) = legend_size;
+        'FontSize', Plot_Params.legend_size, 'Location', 'northeast');
+    right_legend.ItemTokenSize(1) = Plot_Params.legend_size;
     legend boxoff
 
     % Convert the Y-ticks to percent

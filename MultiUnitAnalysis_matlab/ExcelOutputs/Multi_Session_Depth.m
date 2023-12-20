@@ -6,7 +6,7 @@ disp('Multi-Experiment Depth Results:');
 %% Some of the analysis specifications
 
 % What minimum signal to noise ration? (# or NaN)
-SNR_Minimum = 5;
+SNR_Minimum = NaN; %5;
 
 % Which targets do you want the mnovement phase firing rate calculated from? ('Max', 'Min', 'All')
 tgt_mpfr = 'Max';
@@ -144,7 +144,8 @@ for xx = 1:length(Dates)
             % If the unit doesn't exist or has less than 1000 spikes
             continue
         end
-        [nonlin_peak_to_peak, ~, nonlin_sort_metric] = NonLinearEnergy_Morn_v_Noon(xds_morn, xds_noon, unit_name, 0, 0);
+        [nonlin_peak_to_peak, ~, nonlin_sort_metric] = ...
+            NonLinearEnergy_Morn_v_Noon(xds_morn, xds_noon, unit_name, 0, 0);
 
         %% Check if the unit's SNR is below the defined minimum
         
@@ -185,9 +186,9 @@ for xx = 1:length(Dates)
 
         %% Get the movement phase firing rates
 
-        [~, ~, pertrial_mpfr_morn] = ...
+        [~, ~, ~, pertrial_mpfr_morn] = ...
             EventPeakFiringRate(xds_morn, unit_name, event);
-        [~, ~, pertrial_mpfr_noon] = ... 
+        [~, ~, ~, pertrial_mpfr_noon] = ... 
             EventPeakFiringRate(xds_noon, unit_name, event);
 
         % Extract the target directions & centers
@@ -235,7 +236,7 @@ for xx = 1:length(Dates)
         end
 
         %% Only look at the preferred direction
-        [pref_dir] = PreferredDirection_Morn_v_Noon(xds_morn, xds_noon, unit_name, event, tgt_mpfr);
+        [pref_dir] = Pref_Direction_Morn_v_Noon(xds_morn, xds_noon, unit_name, event, tgt_mpfr);
 
         if strcmp(tgt_mpfr, 'Max')
             pref_dir_tgt_morn = max(target_centers_morn(target_dirs_morn == pref_dir));
@@ -254,10 +255,6 @@ for xx = 1:length(Dates)
             target_center = pref_dir_tgt_noon;
         end
 
-        %% Find the alignment times
-        [~, alignment_time_morn] = EventWindow(xds_morn, unit_name, pref_dir, target_center, event);
-        [~, alignment_time_noon] = EventWindow(xds_noon, unit_name, pref_dir, target_center, event);
-        
         %% Find the post-spike facilitation
 
         %[~, peak_to_noise_ratio_morn] = Spike_Trigger_Avg(xds_morn, unit_name, pref_dir, 0, 0);
@@ -309,6 +306,27 @@ for xx = 1:length(Dates)
 
         err_depth_morn = tgt_err_depth_morn(tgt_dir_morn == pref_dir);
         err_depth_noon = tgt_err_depth_noon(tgt_dir_noon == pref_dir);
+
+        %% Find the alignment times
+        %[~, alignment_time_morn] = EventWindow(xds_morn, unit_name, pref_dir, target_center, event);
+        %[~, alignment_time_noon] = EventWindow(xds_noon, unit_name, pref_dir, target_center, event);
+        
+        [pertrial_mpfr_morn, pertrial_mpfr_noon, max_fr_time] = ...
+            EventWindow_Morn_v_Noon(xds_morn, xds_noon, unit_name, pref_dir, target_center, event);
+        alignment_time_morn = max_fr_time;
+        alignment_time_noon = max_fr_time;
+        % Calculate the depth of modulation per trial
+        pertrial_depth_morn = struct([]);
+        pertrial_depth_noon = struct([]);
+        pertrial_depth_morn{1,1} = pertrial_mpfr_morn{1,1} - avg_bsfr_morn(1,1);
+        pertrial_depth_noon{1,1} = pertrial_mpfr_noon{1,1} - avg_bsfr_noon(1,1);
+        % Find the mean & standard error of the depth of modulation
+        avg_depth_morn = mean(pertrial_depth_morn{1,1});
+        avg_depth_noon = mean(pertrial_depth_noon{1,1});
+        err_depth_morn = std(pertrial_depth_morn{1,1}) / ...
+            sqrt(length(pertrial_depth_morn{1,1}));
+        err_depth_noon = std(pertrial_depth_noon{1,1}) / ...
+            sqrt(length(pertrial_depth_noon{1,1}));
 
         %% Check if the unit's depth of modulation changed significantly
 

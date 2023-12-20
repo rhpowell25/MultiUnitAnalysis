@@ -6,14 +6,15 @@ Sampling_Params.trial_task = 'PG';
 [xds_depth_excel_first, file_names] = Load_Depth_Excel(Monkey, Sampling_Params);
 [split_depth_excel_first, column_names_first] = Split_Depth_Excel(xds_depth_excel_first);
 
-Sampling_Params.trial_task = 'KG';
+%Sampling_Params.trial_task = 'KG';
 [xds_depth_excel_second, ~] = Load_Depth_Excel(Monkey, Sampling_Params);
 [split_depth_excel_second, column_names_second] = Split_Depth_Excel(xds_depth_excel_second);
 
 %% Some of the plotting specifications
 
-% Which firing rate phase do you want to plot? ('Baseline', 'Peak', 'Depth', 'Depth_Change')?
-fire_rate_phase = 'Depth_Change';
+% Which firing rate phase do you want to plot? 
+% ('Baseline', 'Peak', 'Depth', 'Depth_Change', 'alignment')?
+fire_rate_phase = 'alignment';
 
 % Do you want to look at the morning or afternoon ('Morn', 'Noon')
 Morn_vs_Noon = 'Morn';
@@ -89,6 +90,11 @@ if strcmp(fire_rate_phase, 'Depth_Change')
     end
 end
 
+if strcmp(fire_rate_phase, 'alignment')
+    fire_rate_first = split_depth_excel_first{strcmp(column_names_first, 'alignment_morn')};
+    fire_rate_second = split_depth_excel_second{strcmp(column_names_second, 'alignment_noon')};
+end
+
 % Extract the other variables
 drug_dose = split_depth_excel_first{strcmp(column_names_first, 'drug_dose_mg_per_kg')};
 unit_names_first = split_depth_excel_first{strcmp(column_names_first, 'unit_names')};
@@ -100,6 +106,8 @@ unit_names_second = split_depth_excel_second{strcmp(column_names_second, 'unit_n
 label_font_size = 30;
 title_font_size = 14;
 fig_size = 700;
+
+axis_expansion = 1;
 
 % Scatter Marker Shapes
 marker_metric = '.';
@@ -120,11 +128,11 @@ for xx = 1:length(xds_depth_excel_first)
     %% Add the monkey name to the title
 
     if strcmp(Monkey, 'All')
-        Fig_Title = strcat('All Monkeys,', {' '});
+        Base_Title = strcat('All Monkeys,', {' '});
     else
-        Fig_Title = '';
+        Base_Title = '';
         for ii = 1:length(Monkey)
-            Fig_Title = strcat(Fig_Title, Monkey{ii}, ',', {' '});
+            Base_Title = strcat(Base_Title, Monkey{ii}, ',', {' '});
         end
     end
 
@@ -136,10 +144,14 @@ for xx = 1:length(xds_depth_excel_first)
 
     % Set the title
     if strcmp(Sampling_Params.trial_sessions, 'Ind')
-        title(strcat(Fig_Title, file_names{xx}, {' '}, string(drug_dose{xx}(1)), {', '}, Morn_vs_Noon), 'FontSize', title_font_size)
+        Fig_Title = strcat(Base_Title, file_names{xx}, {' '}, ...
+            string(drug_dose{xx}(1)), {', '}, Morn_vs_Noon);
+        title(Fig_Title, 'FontSize', title_font_size)
     elseif strcmp(Sampling_Params.trial_sessions, 'All')
         scatter_title = 'All Trials';
-        title(strcat(Fig_Title, scatter_title, {' '}, Drug_Choice), 'FontSize', title_font_size)
+        Fig_Title = strcat(Base_Title, scatter_title, {' '}, ...
+            Sampling_Params.drug_choice);
+        title(Fig_Title, 'FontSize', title_font_size)
     end
 
     % Label the axis
@@ -161,15 +173,17 @@ for xx = 1:length(xds_depth_excel_first)
     end
 
     % Calculate the axis limits
+    round_digit = 1;
     min_first = min(fire_rate_first{xx});
     min_second = min(fire_rate_second{xx});
-    axis_min = round(min(min_first, min_second)/5)*5;
+    axis_min = round(min(min_first, min_second)/round_digit)*round_digit;
     max_first = max(fire_rate_first{xx});
     max_second = max(fire_rate_second{xx});
-    axis_max = round(max(max_first, max_second)/5)*5;
+    axis_max = round(max(max_first, max_second)/round_digit)*round_digit;
 
     % Draw the unity line 
-    line([axis_min - 10, axis_max + 10],[axis_min - 10, axis_max + 10], ... 
+    line([axis_min - axis_expansion, axis_max + axis_expansion],...
+        [axis_min - axis_expansion, axis_max + axis_expansion], ... 
         'Color', 'k', 'Linewidth', 1, 'Linestyle','--')
 
     for jj = 1:length(all_unit_names)
@@ -193,8 +207,8 @@ for xx = 1:length(xds_depth_excel_first)
     fprintf('Second average is %0.2f \n', fire_rate_mean_second)
 
     % Set the axis
-    xlim([axis_min - 10, axis_max + 10])
-    ylim([axis_min - 10, axis_max + 10])
+    xlim([axis_min - axis_expansion, axis_max + axis_expansion])
+    ylim([axis_min - axis_expansion, axis_max + axis_expansion])
 
     %% Save the file if selected
     Save_Figs(Fig_Title, Save_File)

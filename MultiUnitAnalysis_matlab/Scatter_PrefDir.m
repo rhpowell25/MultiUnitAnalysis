@@ -137,10 +137,8 @@ end
 
 %% Some variable extraction & definitions
 
-% Font specifications
-label_font_size = 30;
-title_font_size = 14;
-fig_size = 700;
+% Font & plotting specifications
+[Plot_Params] = Plot_Parameters;
 
 % Scatter Marker Shapes
 marker_metric = '.';
@@ -168,33 +166,33 @@ for xx = 1:length(xds_depth_excel)
     %% Plot the Depth of Modulation Scatter
 
     scatter_fig = figure;
-    scatter_fig.Position = [200 50 fig_size fig_size];
+    scatter_fig.Position = [200 50 Plot_Params.fig_size Plot_Params.fig_size];
     hold on
 
     % Set the title
     if strcmp(Sampling_Params.trial_sessions, 'Ind')
-        title(strcat(Fig_Title, file_names{xx}, {' '}, Morn_vs_Noon), 'FontSize', title_font_size)
+        title(strcat(Fig_Title, file_names{xx}, {' '}, Morn_vs_Noon), 'FontSize', Plot_Params.title_font_size)
     elseif strcmp(Sampling_Params.trial_sessions, 'All')
         scatter_title = 'All Trials';
-        title(strcat(Fig_Title, scatter_title, {' '}, Drug_Choice), 'FontSize', title_font_size)
+        title(strcat(Fig_Title, scatter_title, {' '}, Drug_Choice), 'FontSize', Plot_Params.title_font_size)
     end
 
     % Label the axis
     if strcmp(fire_rate_phase, 'Baseline')
-        xlabel('Preferred Baseline Firing Rate (Hz)', 'FontSize', label_font_size);
-        ylabel('Opposite Baseline Firing Rate (Hz)', 'FontSize', label_font_size);
+        xlabel('Preferred Baseline Firing Rate (Hz)', 'FontSize', Plot_Params.label_font_size);
+        ylabel('Opposite Baseline Firing Rate (Hz)', 'FontSize', Plot_Params.label_font_size);
     end
     if strcmp(fire_rate_phase, 'Peak')
-        xlabel('Preferred Peak Firing Rate (Hz)', 'FontSize', label_font_size);
-        ylabel('Opposite Peak Firing Rate (Hz)', 'FontSize', label_font_size);
+        xlabel('Preferred Peak Firing Rate (Hz)', 'FontSize', Plot_Params.label_font_size);
+        ylabel('Opposite Peak Firing Rate (Hz)', 'FontSize', Plot_Params.label_font_size);
     end
     if strcmp(fire_rate_phase, 'Depth')
-        xlabel('Preferred Depth of Modulation (Hz)', 'FontSize', label_font_size);
-        ylabel('Opposite Depth of Modulation (Hz)', 'FontSize', label_font_size);
+        xlabel('Preferred Depth of Modulation (Hz)', 'FontSize', Plot_Params.label_font_size);
+        ylabel('Opposite Depth of Modulation (Hz)', 'FontSize', Plot_Params.label_font_size);
     end
     if strcmp(fire_rate_phase, 'Depth_Change')
-        xlabel('Preferred Change in Modulation (Hz)', 'FontSize', label_font_size);
-        ylabel('Opposite Change in Modulation (Hz)', 'FontSize', label_font_size);
+        xlabel('Preferred Change in Modulation (Hz)', 'FontSize', Plot_Params.label_font_size);
+        ylabel('Opposite Change in Modulation (Hz)', 'FontSize', Plot_Params.label_font_size);
     end
 
     % Calculate the axis limits
