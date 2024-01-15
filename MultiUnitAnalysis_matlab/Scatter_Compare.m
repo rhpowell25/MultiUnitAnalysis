@@ -13,8 +13,8 @@ Sampling_Params.trial_task = 'PG';
 %% Some of the plotting specifications
 
 % Which firing rate phase do you want to plot? 
-% ('Baseline', 'Peak', 'Depth', 'Depth_Change', 'alignment')?
-fire_rate_phase = 'alignment';
+% ('Baseline', 'Peak', 'Depth', 'Depth_Change', 'alignment', ')?
+fire_rate_phase = 'depth_ks_test';
 
 % Do you want to look at the morning or afternoon ('Morn', 'Noon')
 Morn_vs_Noon = 'Morn';
@@ -91,8 +91,12 @@ if strcmp(fire_rate_phase, 'Depth_Change')
 end
 
 if strcmp(fire_rate_phase, 'alignment')
-    fire_rate_first = split_depth_excel_first{strcmp(column_names_first, 'alignment_morn')};
-    fire_rate_second = split_depth_excel_second{strcmp(column_names_second, 'alignment_noon')};
+    fire_rate_first = split_depth_excel_first{strcmp(column_names_first, 'alignment')};
+    fire_rate_second = split_depth_excel_second{strcmp(column_names_second, 'alignment')};
+end
+if strcmp(fire_rate_phase, 'depth_ks_test')
+    fire_rate_first = split_depth_excel_first{strcmp(column_names_first, 'depth_ks_test_morn')};
+    fire_rate_second = split_depth_excel_second{strcmp(column_names_second, 'depth_ks_test_noon')};
 end
 
 % Extract the other variables
@@ -102,12 +106,10 @@ unit_names_second = split_depth_excel_second{strcmp(column_names_second, 'unit_n
 
 %% Some variable extraction & definitions
 
-% Font specifications
-label_font_size = 30;
-title_font_size = 14;
-fig_size = 700;
+% Font & plotting specifications
+[Plot_Params] = Plot_Parameters;
 
-axis_expansion = 1;
+axis_expansion = 0.01;
 
 % Scatter Marker Shapes
 marker_metric = '.';
@@ -139,37 +141,37 @@ for xx = 1:length(xds_depth_excel_first)
     %% Plot the Depth of Modulation Scatter
 
     scatter_fig = figure;
-    scatter_fig.Position = [200 50 fig_size fig_size];
+    scatter_fig.Position = [200 50 Plot_Params.fig_size Plot_Params.fig_size];
     hold on
 
     % Set the title
     if strcmp(Sampling_Params.trial_sessions, 'Ind')
         Fig_Title = strcat(Base_Title, file_names{xx}, {' '}, ...
             string(drug_dose{xx}(1)), {', '}, Morn_vs_Noon);
-        title(Fig_Title, 'FontSize', title_font_size)
+        title(Fig_Title, 'FontSize', Plot_Params.title_font_size)
     elseif strcmp(Sampling_Params.trial_sessions, 'All')
         scatter_title = 'All Trials';
         Fig_Title = strcat(Base_Title, scatter_title, {' '}, ...
             Sampling_Params.drug_choice);
-        title(Fig_Title, 'FontSize', title_font_size)
+        title(Fig_Title, 'FontSize', Plot_Params.title_font_size)
     end
 
     % Label the axis
     if strcmp(fire_rate_phase, 'Baseline')
-        xlabel('First Baseline Firing Rate (Hz)', 'FontSize', label_font_size);
-        ylabel('Second Baseline Firing Rate (Hz)', 'FontSize', label_font_size);
+        xlabel('First Baseline Firing Rate (Hz)', 'FontSize', Plot_Params.label_font_size);
+        ylabel('Second Baseline Firing Rate (Hz)', 'FontSize', Plot_Params.label_font_size);
     end
     if strcmp(fire_rate_phase, 'Peak')
-        xlabel('First Peak Firing Rate (Hz)', 'FontSize', label_font_size);
-        ylabel('Second Peak Firing Rate (Hz)', 'FontSize', label_font_size);
+        xlabel('First Peak Firing Rate (Hz)', 'FontSize', Plot_Params.label_font_size);
+        ylabel('Second Peak Firing Rate (Hz)', 'FontSize', Plot_Params.label_font_size);
     end
     if strcmp(fire_rate_phase, 'Depth')
-        xlabel('First Depth of Modulation (Hz)', 'FontSize', label_font_size);
-        ylabel('Second Depth of Modulation (Hz)', 'FontSize', label_font_size);
+        xlabel('First Depth of Modulation (Hz)', 'FontSize', Plot_Params.label_font_size);
+        ylabel('Second Depth of Modulation (Hz)', 'FontSize', Plot_Params.label_font_size);
     end
     if strcmp(fire_rate_phase, 'Depth_Change')
-        xlabel('First Change in Modulation (Hz)', 'FontSize', label_font_size);
-        ylabel('Second Change in Modulation (Hz)', 'FontSize', label_font_size);
+        xlabel('First Change in Modulation (Hz)', 'FontSize', Plot_Params.label_font_size);
+        ylabel('Second Change in Modulation (Hz)', 'FontSize', Plot_Params.label_font_size);
     end
 
     % Calculate the axis limits

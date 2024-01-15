@@ -48,11 +48,15 @@ mod_p_value_wilcoxon_morn = struct([]);
 mod_p_value_t_test_noon = struct([]);
 mod_p_value_wilcoxon_noon = struct([]);
 % Baseline firing rate statistics
+bsfr_p_value_ks_test_morn = struct([]);
+bsfr_p_value_ks_test_noon = struct([]);
 bsfr_p_value_t_test = struct([]);
 bsfr_p_value_wilcoxon = struct([]);
 bsfr_effect_perc = struct([]);
 bsfr_effect_cohen_d = struct([]);
 % Depth of modulation statistics
+depth_p_value_ks_test_morn = struct([]);
+depth_p_value_ks_test_noon = struct([]);
 depth_p_value_t_test = struct([]);
 depth_p_value_wilcoxon = struct([]);
 depth_effect_perc = struct([]);
@@ -79,8 +83,7 @@ all_units_pref_dir = struct([]);
 % Target center
 all_units_target = struct([]);
 % Alignment times
-alignment_morn = struct([]);
-alignment_noon = struct([]);
+alignment = struct([]);
 
 % Post Spike Facilitation
 post_spike_facil = struct([]);
@@ -184,14 +187,8 @@ for xx = 1:length(Dates)
         [avg_bsfr_noon, ~, err_bsfr_noon, pertrial_bsfr_noon] = ... 
             BaselineFiringRate(xds_noon, unit_name);
 
-        %% Get the movement phase firing rates
+        %% Extract the target directions & centers
 
-        [~, ~, ~, pertrial_mpfr_morn] = ...
-            EventPeakFiringRate(xds_morn, unit_name, event);
-        [~, ~, ~, pertrial_mpfr_noon] = ... 
-            EventPeakFiringRate(xds_noon, unit_name, event);
-
-        % Extract the target directions & centers
         [target_dirs_morn, target_centers_morn] = Identify_Targets(xds_morn);
         [target_dirs_noon, target_centers_noon] = Identify_Targets(xds_noon);
         
@@ -208,31 +205,6 @@ for xx = 1:length(Dates)
             target_centers_noon = target_centers_noon(Matching_Idxs_Noon);
             target_dirs_morn = target_dirs_morn(Matching_Idxs_Morn);
             target_dirs_noon = target_dirs_noon(Matching_Idxs_Noon);
-            pertrial_mpfr_morn = pertrial_mpfr_morn(Matching_Idxs_Morn);
-            pertrial_mpfr_noon = pertrial_mpfr_noon(Matching_Idxs_Noon);
-        end
-
-        %% Calculate the depth of modulation per trial
-        pertrial_depth_morn = struct([]);
-        pertrial_depth_noon = struct([]);
-        for ii = 1:length(pertrial_mpfr_morn)
-            pertrial_depth_morn{ii,1} = pertrial_mpfr_morn{ii,1} - avg_bsfr_morn(1,1);
-            pertrial_depth_noon{ii,1} = pertrial_mpfr_noon{ii,1} - avg_bsfr_noon(1,1);
-        end
-        
-        %% Find the mean & standard error of the depth of modulation
-
-        avg_depth_morn = zeros(length(pertrial_mpfr_morn),1);
-        avg_depth_noon = zeros(length(pertrial_mpfr_noon),1);
-        err_depth_morn = zeros(length(pertrial_mpfr_morn),1);
-        err_depth_noon = zeros(length(pertrial_mpfr_noon),1);
-        for ii = 1:length(avg_depth_morn)
-            avg_depth_morn(ii,1) = mean(pertrial_depth_morn{ii,1});
-            avg_depth_noon(ii,1) = mean(pertrial_depth_noon{ii,1});
-            err_depth_morn(ii,1) = std(pertrial_depth_morn{ii,1}) / ...
-                sqrt(length(pertrial_depth_morn{ii,1}));
-            err_depth_noon(ii,1) = std(pertrial_depth_noon{ii,1}) / ...
-                sqrt(length(pertrial_depth_noon{ii,1}));
         end
 
         %% Only look at the preferred direction
@@ -263,23 +235,6 @@ for xx = 1:length(Dates)
         %max_facil = max(cat(1, peak_to_noise_ratio_morn, peak_to_noise_ratio_noon));
         max_facil = NaN;
 
-        %% Look at the maximum or minimum targets if not using all targets
-
-        tgt_depth_morn = avg_depth_morn(target_centers_morn == target_center);
-        tgt_depth_noon = avg_depth_noon(target_centers_noon == target_center);
-
-        tgt_pertrial_mpfr_morn = pertrial_mpfr_morn(target_centers_morn == target_center);
-        tgt_pertrial_mpfr_noon = pertrial_mpfr_noon(target_centers_noon == target_center);
-
-        tgt_pertrial_depth_morn = pertrial_depth_morn(target_centers_morn == target_center);
-        tgt_pertrial_depth_noon = pertrial_depth_noon(target_centers_noon == target_center);
-
-        tgt_err_depth_morn = err_depth_morn(target_centers_morn == target_center);
-        tgt_err_depth_noon = err_depth_noon(target_centers_noon == target_center);
-
-        tgt_dir_morn = target_dirs_morn(target_centers_morn == target_center);
-        tgt_dir_noon = target_dirs_noon(target_centers_noon == target_center);
-
         %% Find the number of targets in the preferred direction
         num_targets_morn = length(target_centers_morn(target_dirs_morn == pref_dir));
         num_targets_noon = length(target_centers_morn(target_dirs_morn == pref_dir));
@@ -290,31 +245,12 @@ for xx = 1:length(Dates)
             pref_dir_targets = NaN;
             disp('Unequal number of targets!')
         end
-  
-        %% Phasic firing rates & depth of modulation in the preferred direction
-
-        pertrial_mpfr_morn = tgt_pertrial_mpfr_morn(tgt_dir_morn == pref_dir);
-        pertrial_mpfr_noon = tgt_pertrial_mpfr_noon(tgt_dir_noon == pref_dir);
-
-        pertrial_depth_morn = tgt_pertrial_depth_morn(tgt_dir_morn == pref_dir);
-        pertrial_depth_noon = tgt_pertrial_depth_noon(tgt_dir_noon == pref_dir);
-
-        avg_depth_morn = tgt_depth_morn(tgt_dir_morn == pref_dir);
-        avg_depth_noon = tgt_depth_noon(tgt_dir_noon == pref_dir);
-        
-        %% Standard error of the phasic firing rates & depth of modulation in the preferred direction
-
-        err_depth_morn = tgt_err_depth_morn(tgt_dir_morn == pref_dir);
-        err_depth_noon = tgt_err_depth_noon(tgt_dir_noon == pref_dir);
 
         %% Find the alignment times
-        %[~, alignment_time_morn] = EventWindow(xds_morn, unit_name, pref_dir, target_center, event);
-        %[~, alignment_time_noon] = EventWindow(xds_noon, unit_name, pref_dir, target_center, event);
-        
+
         [pertrial_mpfr_morn, pertrial_mpfr_noon, max_fr_time] = ...
             EventWindow_Morn_v_Noon(xds_morn, xds_noon, unit_name, pref_dir, target_center, event);
-        alignment_time_morn = max_fr_time;
-        alignment_time_noon = max_fr_time;
+        alignment_time = max_fr_time;
         % Calculate the depth of modulation per trial
         pertrial_depth_morn = struct([]);
         pertrial_depth_noon = struct([]);
@@ -336,6 +272,9 @@ for xx = 1:length(Dates)
         [~, mod_t_test_noon] = ttest2(pertrial_bsfr_noon{1,1}, pertrial_mpfr_noon{1,1});
         [mod_wilcoxon_noon, ~] = ranksum(pertrial_bsfr_noon{1,1}, pertrial_mpfr_noon{1,1});
 
+        % Baseline firing rate statistics (Kolmogorov-Smirnov Test)
+        [~, bsfr_ks_test_morn] = kstest(pertrial_bsfr_morn{1,1});
+        [~, bsfr_ks_test_noon] = kstest(pertrial_bsfr_noon{1,1});
         % Baseline firing rate statistics (Unpaired T-Test)
         [~, bsfr_t_test] = ttest2(pertrial_bsfr_morn{1,1}, pertrial_bsfr_noon{1,1});
         % Baseline firing rate statistics (Wilcoxon rank sum test)
@@ -345,6 +284,9 @@ for xx = 1:length(Dates)
         % Baseline firing rate effect size (Cohen d)
         bsfr_cohen_d = Cohen_D(pertrial_bsfr_morn{1,1}, pertrial_bsfr_noon{1,1});
 
+        % Depth of modulation statistics (Kolmogorov-Smirnov Test)
+        [~, depth_ks_test_morn] = kstest(pertrial_depth_morn{1,1});
+        [~, depth_ks_test_noon] = kstest(pertrial_depth_noon{1,1});
         % Depth of modulation statistics (Unpaired T-Test)
         [~, depth_t_test] = ttest2(pertrial_depth_morn{1,1}, pertrial_depth_noon{1,1});
         % Depth of modulation statistics (Wilcoxon rank sum test)
@@ -364,9 +306,8 @@ for xx = 1:length(Dates)
         all_units_pref_dir{xx,1}(cc,1) = pref_dir;
         % Target Distance
         all_units_target{xx,1}(cc,1) = target_center;
-        % Alignment Times
-        alignment_morn{xx,1}(cc,1) = alignment_time_morn;
-        alignment_noon{xx,1}(cc,1) = alignment_time_noon;
+        % Alignment Time
+        alignment{xx,1}(cc,1) = alignment_time;
         % Post Spike Facilitation
         post_spike_facil{xx,1}(cc,1) = max_facil;
 
@@ -395,12 +336,16 @@ for xx = 1:length(Dates)
         mod_p_value_wilcoxon_noon{xx,1}(cc,1) = mod_wilcoxon_noon;
 
         % Baseline firing rate statistics
+        bsfr_p_value_ks_test_morn{xx,1}(cc,1) = bsfr_ks_test_morn;
+        bsfr_p_value_ks_test_noon{xx,1}(cc,1) = bsfr_ks_test_noon;
         bsfr_p_value_t_test{xx,1}(cc,1) = bsfr_t_test;
         bsfr_p_value_wilcoxon{xx,1}(cc,1) = bsfr_wilcoxon;
         bsfr_effect_perc{xx,1}(cc,1) = bsfr_perc;
         bsfr_effect_cohen_d{xx,1}(cc,1) = bsfr_cohen_d;
 
         % Depth of modulation statistics
+        depth_p_value_ks_test_morn{xx,1}(cc,1) = depth_ks_test_morn;
+        depth_p_value_ks_test_noon{xx,1}(cc,1) = depth_ks_test_noon;
         depth_p_value_t_test{xx,1}(cc,1) = depth_t_test;
         depth_p_value_wilcoxon{xx,1}(cc,1) = depth_wilcoxon;
         depth_effect_perc{xx,1}(cc,1) = depth_perc;
@@ -443,6 +388,8 @@ for xx = 1:length(Dates)
     morn_and_noon.bsfr_err_noon = bsfr_err_noon{xx,1};
     morn_and_noon.depth_err_morn = depth_err_morn{xx,1};
     morn_and_noon.depth_err_noon = depth_err_noon{xx,1};
+    morn_and_noon.bsfr_ks_test_morn = bsfr_p_value_ks_test_morn{xx,1};
+    morn_and_noon.bsfr_ks_test_noon = bsfr_p_value_ks_test_noon{xx,1};
     morn_and_noon.bsfr_t_test = bsfr_p_value_t_test{xx,1};
     morn_and_noon.bsfr_wilcoxon = bsfr_p_value_wilcoxon{xx,1};
     morn_and_noon.bsfr_perc = bsfr_effect_perc{xx,1};
@@ -451,14 +398,15 @@ for xx = 1:length(Dates)
     morn_and_noon.mod_wilcoxon_morn = mod_p_value_wilcoxon_morn{xx,1};
     morn_and_noon.mod_t_test_noon = mod_p_value_t_test_noon{xx,1};
     morn_and_noon.mod_wilcoxon_noon = mod_p_value_wilcoxon_noon{xx,1};
+    morn_and_noon.depth_ks_test_morn = depth_p_value_ks_test_morn{xx,1};
+    morn_and_noon.depth_ks_test_noon = depth_p_value_ks_test_noon{xx,1};
     morn_and_noon.depth_t_test = depth_p_value_t_test{xx,1};
     morn_and_noon.depth_wilcoxon = depth_p_value_wilcoxon{xx,1};
     morn_and_noon.depth_perc = depth_effect_perc{xx,1};
     morn_and_noon.depth_cohen_d = depth_effect_cohen_d{xx,1};
     morn_and_noon.pref_dir = all_units_pref_dir{xx,1};
     morn_and_noon.target = all_units_target{xx,1};
-    morn_and_noon.alignment_morn = alignment_morn{xx,1};
-    morn_and_noon.alignment_noon = alignment_noon{xx,1};
+    morn_and_noon.alignment = alignment{xx,1};
     morn_and_noon.post_spike_facil = post_spike_facil{xx,1};
     morn_and_noon.wave_sigtonoise = wave_sigtonoise{xx,1};
     morn_and_noon.wave_peaktopeak = wave_peaktopeak{xx,1};

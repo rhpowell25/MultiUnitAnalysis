@@ -17,7 +17,7 @@ plot_legends = 1;
 error_choice = 'none';
 
 % What statistical measure do you want to use ('T-Test', 'Wilcox')
-stat_test = 'T-Test';
+stat_test = 'Wilcox';
 
 % What effect size meausure do you want to use ('Perc_Change', 'Cohen')
 effect_sz_test = 'Perc_Change';
