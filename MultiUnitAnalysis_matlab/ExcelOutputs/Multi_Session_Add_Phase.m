@@ -1,4 +1,4 @@
-function Multi_Session_Add_Phase(Monkey, event, Drug_Choice, Save_Excel)
+function Multi_Session_Add_Phase(Monkey, event, Drug, Save_Excel)
 
 %% Display the function being used
 disp('Multi-Experiment Add Phase Results:');
@@ -15,7 +15,7 @@ else
 end
 
 % Load the file information
-[Dates, Tasks, ~] = File_Details(Monkey, Drug_Choice);
+[Dates, Tasks, ~] = File_Details(Monkey, Drug);
 
 %% Loop through the different experiments
 for xx = 1:length(Dates)
@@ -56,14 +56,12 @@ for xx = 1:length(Dates)
     TgtHold_err_noon = zeros(length(unit_names), 1);
 
     % Ramp phase statistics
-    ramp_p_value_t_test = zeros(length(unit_names), 1);
-    ramp_p_value_wilcoxon = zeros(length(unit_names), 1);
+    ramp_p_val = zeros(length(unit_names), 1);
     ramp_effect_perc = zeros(length(unit_names), 1);
     ramp_effect_cohen_d = zeros(length(unit_names), 1);
 
     % TgtHold phase statistics
-    TgtHold_p_value_t_test = zeros(length(unit_names), 1);
-    TgtHold_p_value_wilcoxon = zeros(length(unit_names), 1);
+    TgtHold_p_val = zeros(length(unit_names), 1);
     TgtHold_effect_perc = zeros(length(unit_names), 1);
     TgtHold_effect_cohen_d = zeros(length(unit_names), 1);
 
@@ -133,23 +131,15 @@ for xx = 1:length(Dates)
 
         %% Check if the unit's depth of modulation changed significantly
 
-        % Ramp phase statistics (Unpaired T-Test)
-        [~, ramp_t_test] = ttest2(pertrial_ramp_morn{1,1}, pertrial_ramp_noon{1,1});
         % Ramp phase statistics (Wilcoxon rank sum test)
-        try
-            [ramp_wilcoxon, ~] = ranksum(pertrial_ramp_morn{1,1}, pertrial_ramp_noon{1,1});
-        catch
-            ramp_wilcoxon = NaN;
-        end
+        [ramp_t_test, ~] = ranksum(pertrial_ramp_morn{1,1}, pertrial_ramp_noon{1,1});
         % Ramp phase percent change
         ramp_perc = (avg_ramp_noon - avg_ramp_morn) / avg_ramp_morn;
         % Ramp phase effect size (Cohen d)
         ramp_cohen_d = Cohen_D(pertrial_ramp_morn{1,1}, pertrial_ramp_noon{1,1});
 
-        % TgtHold phase statistics (Unpaired T-Test)
-        [~, TgtHold_t_test] = ttest2(pertrial_TgtHold_morn{1,1}, pertrial_TgtHold_noon{1,1});
         % TgtHold phase statistics (Wilcoxon rank sum test)
-        [TgtHold_wilcoxon, ~] = ranksum(pertrial_TgtHold_morn{1,1}, pertrial_TgtHold_noon{1,1});
+        [TgtHold_t_test, ~] = ranksum(pertrial_TgtHold_morn{1,1}, pertrial_TgtHold_noon{1,1});
         % TgtHold phase percent change
         TgtHold_perc = (avg_TgtHold_noon - avg_TgtHold_morn) / avg_TgtHold_morn;
         % TgtHold phase effect size (Cohen d)
@@ -176,14 +166,12 @@ for xx = 1:length(Dates)
         TgtHold_err_noon(jj,1) = err_TgtHold_noon;
 
         % Ramp phase statistics
-        ramp_p_value_t_test(jj,1) = ramp_t_test;
-        ramp_p_value_wilcoxon(jj,1) = ramp_wilcoxon;
+        ramp_p_val(jj,1) = ramp_t_test;
         ramp_effect_perc(jj,1) = ramp_perc;
         ramp_effect_cohen_d(jj,1) = ramp_cohen_d;
 
         % TgtHold phase statistics
-        TgtHold_p_value_t_test(jj,1) = TgtHold_t_test;
-        TgtHold_p_value_wilcoxon(jj,1) = TgtHold_wilcoxon;
+        TgtHold_p_val(jj,1) = TgtHold_t_test;
         TgtHold_effect_perc(jj,1) = TgtHold_perc;
         TgtHold_effect_cohen_d(jj,1) = TgtHold_cohen_d;
   
@@ -198,12 +186,11 @@ for xx = 1:length(Dates)
     first_half_excel = xds_excel(:,1:addition_index);
     second_half_excel = xds_excel(:,addition_index + 1:end);
     % Create the table additions
-    excel_addition = array2table(NaN(excel_length, 16));
+    excel_addition = array2table(NaN(excel_length, 14));
     excel_addition.Properties.VariableNames = {'ramp_morn', 'ramp_noon', ...
         'ramp_err_morn', 'ramp_err_noon', 'TgtHold_morn', 'TgtHold_noon', ...
-        'TgtHold_err_morn', 'TgtHold_err_noon', 'ramp_t_test', 'ramp_wilcoxon', ...
-        'ramp_perc', 'ramp_cohen_d', 'TgtHold_t_test', 'TgtHold_wilcoxon', ...
-        'TgtHold_perc', 'TgtHold_cohen_d'};
+        'TgtHold_err_morn', 'TgtHold_err_noon', 'ramp_p_val', 'ramp_perc', ...
+        'ramp_cohen_d', 'TgtHold_p_val', 'TgtHold_perc', 'TgtHold_cohen_d'};
     excel_addition.ramp_morn = ramp_morn;
     excel_addition.ramp_noon = ramp_noon;
     excel_addition.ramp_err_morn = ramp_err_morn;
@@ -212,12 +199,10 @@ for xx = 1:length(Dates)
     excel_addition.TgtHold_noon = TgtHold_noon;
     excel_addition.TgtHold_err_morn = TgtHold_err_morn;
     excel_addition.TgtHold_err_noon = TgtHold_err_noon;
-    excel_addition.ramp_t_test = ramp_p_value_t_test;
-    excel_addition.ramp_wilcoxon = ramp_p_value_wilcoxon;
+    excel_addition.ramp_p_val = ramp_p_val;
     excel_addition.ramp_perc = ramp_effect_perc;
     excel_addition.ramp_cohen_d = ramp_effect_cohen_d;
-    excel_addition.TgtHold_t_test = TgtHold_p_value_t_test;
-    excel_addition.TgtHold_wilcoxon = TgtHold_p_value_wilcoxon;
+    excel_addition.TgtHold_p_val = TgtHold_p_val;
     excel_addition.TgtHold_perc = TgtHold_effect_perc;
     excel_addition.TgtHold_cohen_d = TgtHold_effect_cohen_d;
 
@@ -230,7 +215,7 @@ for xx = 1:length(Dates)
 
         % Define the file name
         filename = char(strcat(Dates{xx,1}, '_', Monkey, '_', ...
-            Tasks{xx,1}, '_', Drug_Choice));
+            Tasks{xx,1}, '_', Drug));
 
         % Save the file
         if ~exist(Save_Path, 'dir')

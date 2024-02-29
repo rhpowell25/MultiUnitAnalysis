@@ -1,4 +1,4 @@
-function PerTrial_FiringRates(Monkey, event, Drug_Choice, Save_Excel)
+function PerTrial_FiringRates(Monkey, event, Drug, Save_Excel)
 
 %% Display the function being used
 disp('Per Trial Firing Rates Excel:');
@@ -8,14 +8,10 @@ disp('Per Trial Firing Rates Excel:');
 % Sorted or unsorted (1 vs 0)
 Sorted = 1;
 
-if isequal(Sorted, 1)
-    Save_Path = strcat('C:\Users\rhpow\Documents\Work\Northwestern\Excel_Data\', event, '\Sorted\');
-else
-    Save_Path = strcat('C:\Users\rhpow\Documents\Work\Northwestern\Excel_Data\', event, '\Unsorted\');
-end
+Save_Path = strcat('C:\Users\rhpow\Documents\Work\Northwestern\Excel_Data\');
 
 % Load the file information
-[Dates, Tasks, ~] = File_Details(Monkey, Drug_Choice);
+[Dates, Tasks, ~] = File_Details(Monkey, Drug);
 
 %% Loop through the different experiments
 for xx = 1:length(Dates)
@@ -23,7 +19,7 @@ for xx = 1:length(Dates)
     % Load the excel file
     [xds_excel] = Load_Excel(Monkey, Dates{xx,1}, Tasks{xx,1});
 
-    nonlin_idxs = xds_excel.nonlin_p_value >= 0.05;
+    nonlin_idxs = xds_excel.nonlin_p_val >= 0.05;
     unit_names = xds_excel.unit_names(nonlin_idxs);
 
     pref_dirs = xds_excel.pref_dir(nonlin_idxs);
@@ -59,30 +55,23 @@ for xx = 1:length(Dates)
 
         if isequal(jj,1)
 
-            % Morning baseline firing rate
-            bsfr_morn = zeros(length(pertrial_bsfr_morn{1,1}), length(unit_names));
-            % Afternoon baseline firing rate
-            bsfr_noon =  zeros(length(pertrial_bsfr_noon{1,1}), length(unit_names));
-        
-            % Morning peak firing rate
-            mpfr_morn = zeros(length(pertrial_mpfr_morn{1,1}), length(unit_names));
-            % Afternoon peak firing rate
-            mpfr_noon = zeros(length(pertrial_mpfr_noon{1,1}), length(unit_names));
+            % Morning depth of modulation
+            depth_morn = zeros(length(pertrial_mpfr_morn{1,1}), length(unit_names));
+            % Afternoon depth of modulation
+            depth_noon = zeros(length(pertrial_mpfr_noon{1,1}), length(unit_names));
 
         end
 
         %% Put the firing rates in the output arrays
 
-        bsfr_morn(:,jj) = pertrial_bsfr_morn{1,1};
-        bsfr_noon(:,jj) = pertrial_bsfr_noon{1,1};
-        mpfr_morn(:,jj) = pertrial_mpfr_morn{1,1};
-        mpfr_noon(:,jj) = pertrial_mpfr_noon{1,1};
+        depth_morn(:,jj) = pertrial_mpfr_morn{1,1} - mean(pertrial_bsfr_morn);
+        depth_noon(:,jj) = pertrial_mpfr_noon{1,1} - mean(pertrial_bsfr_noon);
   
     end % End the unit loop
 
     %% Add the new metric to the excel
 
-    excel_length = max(length(bsfr_morn), length(bsfr_noon));
+    excel_length = max(height(bsfr_morn), height(bsfr_noon));
     excel_width = length(unit_names)*4;
 
     % Create the table
@@ -98,21 +87,21 @@ for xx = 1:length(Dates)
     
     % Assign the firing rates to the table
     bsfr_morn_idxs = contains(Variable_Names, 'bsfr_morn');
-    xds_excel(1:length(bsfr_morn), bsfr_morn_idxs) = array2table(bsfr_morn);
+    xds_excel(1:height(bsfr_morn), bsfr_morn_idxs) = array2table(bsfr_morn);
     bsfr_noon_idxs = contains(Variable_Names, 'bsfr_noon');
-    xds_excel(1:length(bsfr_noon), bsfr_noon_idxs) = array2table(bsfr_noon);
+    xds_excel(1:height(bsfr_noon), bsfr_noon_idxs) = array2table(bsfr_noon);
     mpfr_morn_idxs = contains(Variable_Names, 'mpfr_morn');
-    xds_excel(1:length(mpfr_morn), mpfr_morn_idxs) = array2table(mpfr_morn);
+    xds_excel(1:height(mpfr_morn), mpfr_morn_idxs) = array2table(mpfr_morn);
     mpfr_noon_idxs = contains(Variable_Names, 'mpfr_noon');
-    xds_excel(1:length(mpfr_noon), mpfr_noon_idxs) = array2table(mpfr_noon);
+    xds_excel(1:height(mpfr_noon), mpfr_noon_idxs) = array2table(mpfr_noon);
 
     %% Save to Excel
 
     if isequal(Save_Excel, 1)
 
         % Define the file name
-        filename = char(strcat('Per_Trial', Dates{xx,1}, '_', Monkey, '_', ...
-            Tasks{xx,1}, '_', Drug_Choice));
+        filename = char(strcat('Per_Trial_', Dates{xx,1}, '_', Monkey, '_', ...
+            Tasks{xx,1}, '_', Drug));
 
         % Save the file
         if ~exist(Save_Path, 'dir')

@@ -16,9 +16,6 @@ plot_legends = 1;
 % Best fit or elliptial error probable? ('none', 'best_fit', or 'ellip_err_prob')
 error_choice = 'none';
 
-% What statistical measure do you want to use ('T-Test', 'Wilcox')
-stat_test = 'Wilcox';
-
 % What effect size meausure do you want to use ('Perc_Change', 'Cohen')
 effect_sz_test = 'Perc_Change';
 
@@ -51,15 +48,13 @@ if strcmp(fire_rate_phase, 'Peak')
     end
     fire_rate_err_morn = split_depth_excel{strcmp(column_names, 'depth_err_morn')};
     fire_rate_err_noon = split_depth_excel{strcmp(column_names, 'depth_err_noon')};
-    fire_rate_t_test = split_depth_excel{strcmp(column_names, 'depth_t_test')};
-    fire_rate_wilcoxon = split_depth_excel{strcmp(column_names, 'depth_wilcoxon')};
+    fire_rate_p_val = split_depth_excel{strcmp(column_names, 'depth_p_val')};
 else
     fire_rate_morn = split_depth_excel{strcmp(column_names, strcat(fire_rate_phase, '_morn'))};
     fire_rate_err_morn = split_depth_excel{strcmp(column_names, strcat(fire_rate_phase, '_err_morn'))};
     fire_rate_noon = split_depth_excel{strcmp(column_names, strcat(fire_rate_phase, '_noon'))};
     fire_rate_err_noon = split_depth_excel{strcmp(column_names, strcat(fire_rate_phase, '_err_noon'))};
-    fire_rate_t_test = split_depth_excel{strcmp(column_names, strcat(fire_rate_phase, '_t_test'))};
-    fire_rate_wilcoxon = split_depth_excel{strcmp(column_names, strcat(fire_rate_phase, '_wilcoxon'))};
+    fire_rate_p_val = split_depth_excel{strcmp(column_names, strcat(fire_rate_phase, '_p_val'))};
 end
 
 % Extract the other variables
@@ -86,14 +81,6 @@ sig_color = 1;
 % Scatter Marker sizes
 single_marker_size = 1000;
 multi_marker_size = 250;
-
-%% Use chosen significance metric
-
-if strcmp(stat_test, 'T-Test')
-    sig_metric = fire_rate_t_test;
-elseif strcmp(stat_test, 'Wilcox')
-    sig_metric = fire_rate_wilcoxon;
-end
 
 %% Loop through each of the experimental sessions
 for xx = 1:length(all_unit_names)
@@ -243,7 +230,7 @@ for xx = 1:length(all_unit_names)
     for jj = 1:length(all_unit_names{xx,1})
 
         % If the unit significantly changed
-        if sig_metric{xx,1}(jj,1) <= 0.05
+        if fire_rate_p_val{xx,1}(jj,1) <= 0.05
             color_metric = sig_color;
         else % If the unit did not significantly change
             color_metric = insig_color;
@@ -390,18 +377,13 @@ for xx = 1:length(all_unit_names)
     % Display the percent change & statistics
     fire_rate_mean_morn = mean(fire_rate_morn{xx}, 'omitnan');
     fire_rate_mean_noon = mean(fire_rate_noon{xx}, 'omitnan');
-    if strcmp(stat_test, 'T-Test')
-        [~, fire_rate_p_val] = ttest(fire_rate_morn{xx}, fire_rate_noon{xx});
-    elseif strcmp(stat_test, 'Wilcox')
-        [fire_rate_p_val, ~] = ranksum(fire_rate_morn{xx}, fire_rate_noon{xx});
-    end
     if strcmp(effect_sz_test, 'Perc_Change')
         fire_rate_effect_size = ((fire_rate_mean_noon - fire_rate_mean_morn) / fire_rate_mean_morn) * 100;
     elseif strcmp(effect_sz_test, 'Cohen')
         cohen_d_effect = meanEffectSize(fire_rate_morn{xx}, fire_rate_noon{xx}, Effect = 'cohen');
         fire_rate_effect_size = cohen_d_effect.Effect;
     end
-    fprintf('Effect size is %0.2f, p = %0.3f \n', fire_rate_effect_size, fire_rate_p_val)
+    fprintf('Effect size is %0.2f \n', fire_rate_effect_size)
 
     %% Save the file if selected
     Fig_Title = strcat(Fig_Title, {' '}, 'Scatter');

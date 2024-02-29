@@ -13,9 +13,6 @@ fire_rate_phase = 'depth';
 % Do you want to plot the morning / afternoon legend? (1 = Yes, 0 = No)
 plot_legend = 1;
 
-% What statistical measure do you want to use ('T-Test', 'Wilcox')
-stat_test = 'Wilcox';
-
 % What effect size meausure do you want to use ('Perc_Change', 'Cohen')
 effect_sz_test = 'Perc_Change';
 
@@ -54,10 +51,8 @@ all_unit_names = split_depth_excel{strcmp(column_names, 'unit_names')};
 % Font & plotting specifications
 [Plot_Params] = Plot_Parameters;
 if isequal(plot_legend, 1)
-    p_value_dims = [0.51 0.3 0.44 0.44];
     n_value_dims = [0.49 0.225 0.44 0.44];
 else
-    p_value_dims = [0.51 0.45 0.44 0.44];
     n_value_dims = [0.49 0.375 0.44 0.44];
 end
 
@@ -144,15 +139,6 @@ for xx = 1:length(all_unit_names)
         x_label = 'Peak EMG Amplitude';
     end
 
-    %% Do the statistics
-
-    if strcmp(stat_test, 'T-Test')
-        [~, fire_rate_p_val] = ttest(fire_rate_morn{xx,1}, fire_rate_noon{xx,1});
-    elseif strcmp(stat_test, 'Wilcox')
-        [fire_rate_p_val, ~] = ranksum(fire_rate_morn{xx,1}, fire_rate_noon{xx,1});
-    end
-    fire_rate_n_val = length(fire_rate_morn{xx,1});
-
     %% Plot the depth of modulation histograms
 
     % Find the mean firing rates
@@ -173,7 +159,7 @@ for xx = 1:length(all_unit_names)
     histogram(fire_rate_noon{xx,1}, 15, 'EdgeColor', 'k', 'FaceColor', [.5 0 .5])
 
     disp(strcat(Monkey, {' '}, Sampling_Params.drug_choice, ':'))
-    fprintf('Effect size is %0.2f, p = %0.3f \n', fire_rate_effect_size, fire_rate_p_val)
+    fprintf('Effect size is %0.2f \n', fire_rate_effect_size)
 
     % Set the axis
     x_limits = xlim;
@@ -214,27 +200,6 @@ for xx = 1:length(all_unit_names)
     % Label the axis
     ylabel('Units', 'FontSize', Plot_Params.label_font_size)
     xlabel(x_label, 'FontSize', Plot_Params.label_font_size);
-
-    % Annotation of the p_value
-    if round(fire_rate_p_val, 3) > 0
-        p_value_string = strcat('p =', {' '}, mat2str(round(fire_rate_p_val, 3)));
-        p_value_string = {char(p_value_string)};
-        ann_p_value = annotation('textbox', p_value_dims, 'String', p_value_string, ... 
-            'FitBoxToText', 'on', 'verticalalignment', 'top', ... 
-            'EdgeColor','none', 'horizontalalignment', 'center');
-        ann_p_value.FontSize = Plot_Params.legend_size;
-        ann_p_value.FontName = Plot_Params.font_name;
-    end
-
-    if isequal(round(fire_rate_p_val, 3), 0)
-        p_value_string = strcat('p <', {' '}, '0.001');
-        p_value_string = {char(p_value_string)};
-        ann_p_value = annotation('textbox', p_value_dims, 'String', p_value_string, ...
-            'FitBoxToText', 'on', 'verticalalignment', 'top', ... 
-            'EdgeColor','none', 'horizontalalignment', 'center');
-        ann_p_value.FontSize = Plot_Params.legend_size;
-        ann_p_value.FontName = Plot_Params.font_name;
-    end
 
     % Annotation of the n_value
     n_value_string = strcat('n =', {' '}, mat2str(round(fire_rate_n_val, 3)));

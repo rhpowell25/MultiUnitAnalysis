@@ -1,4 +1,4 @@
-function Multi_Session_Depth(Monkey, event, Drug_Choice, Save_Excel)
+function Multi_Session_Depth(Monkey, event, Drug, Save_Excel)
 
 %% Display the function being used
 disp('Multi-Experiment Depth Results:');
@@ -21,7 +21,7 @@ else
 end
 
 % Load the file information
-[Dates, Tasks, Drug_Dose] = File_Details(Monkey, Drug_Choice);
+[Dates, Tasks, Drug_Dose] = File_Details(Monkey, Drug);
 
 %% Build the output arrays
 
@@ -43,22 +43,14 @@ bsfr_err_noon = struct([]);
 depth_err_noon = struct([]);
 
 % Modulation statistics
-mod_p_value_t_test_morn = struct([]);
-mod_p_value_wilcoxon_morn = struct([]);
-mod_p_value_t_test_noon = struct([]);
-mod_p_value_wilcoxon_noon = struct([]);
+mod_p_val_morn = struct([]);
+mod_p_val_noon = struct([]);
 % Baseline firing rate statistics
-bsfr_p_value_ks_test_morn = struct([]);
-bsfr_p_value_ks_test_noon = struct([]);
-bsfr_p_value_t_test = struct([]);
-bsfr_p_value_wilcoxon = struct([]);
+bsfr_p_val = struct([]);
 bsfr_effect_perc = struct([]);
 bsfr_effect_cohen_d = struct([]);
 % Depth of modulation statistics
-depth_p_value_ks_test_morn = struct([]);
-depth_p_value_ks_test_noon = struct([]);
-depth_p_value_t_test = struct([]);
-depth_p_value_wilcoxon = struct([]);
+depth_p_val = struct([]);
 depth_effect_perc = struct([]);
 depth_effect_cohen_d = struct([]);
 
@@ -69,8 +61,8 @@ nonlin_sigtonoise = struct([]);
 wave_peaktopeak = struct([]);
 nonlin_peaktopeak = struct([]);
 % Wave shape t-tests
-wave_p_value = struct([]);
-nonlin_p_value = struct([]);
+wave_p_val = struct([]);
+nonlin_p_val = struct([]);
 % Spike Width
 spike_width = struct([]);
 % Repolarization Time
@@ -266,31 +258,19 @@ for xx = 1:length(Dates)
 
         %% Check if the unit's depth of modulation changed significantly
 
-        % Modulation statistics & effect sizes
-        [~, mod_t_test_morn] = ttest2(pertrial_bsfr_morn{1,1}, pertrial_mpfr_morn{1,1});
-        [mod_wilcoxon_morn, ~] = ranksum(pertrial_bsfr_morn{1,1}, pertrial_mpfr_morn{1,1});
-        [~, mod_t_test_noon] = ttest2(pertrial_bsfr_noon{1,1}, pertrial_mpfr_noon{1,1});
-        [mod_wilcoxon_noon, ~] = ranksum(pertrial_bsfr_noon{1,1}, pertrial_mpfr_noon{1,1});
+        % Modulation statistics (Wilcoxon rank sum test)
+        [mod_wilcox_morn, ~] = ranksum(pertrial_bsfr_morn{1,1}, pertrial_mpfr_morn{1,1});
+        [mod_wilcox_noon, ~] = ranksum(pertrial_bsfr_noon{1,1}, pertrial_mpfr_noon{1,1});
 
-        % Baseline firing rate statistics (Kolmogorov-Smirnov Test)
-        [~, bsfr_ks_test_morn] = kstest(pertrial_bsfr_morn{1,1});
-        [~, bsfr_ks_test_noon] = kstest(pertrial_bsfr_noon{1,1});
-        % Baseline firing rate statistics (Unpaired T-Test)
-        [~, bsfr_t_test] = ttest2(pertrial_bsfr_morn{1,1}, pertrial_bsfr_noon{1,1});
         % Baseline firing rate statistics (Wilcoxon rank sum test)
-        [bsfr_wilcoxon, ~] = ranksum(pertrial_bsfr_morn{1,1}, pertrial_bsfr_noon{1,1});
+        [bsfr_wilcox, ~] = ranksum(pertrial_bsfr_morn{1,1}, pertrial_bsfr_noon{1,1});
         % Baseline firing rate percent change
         bsfr_perc = (avg_bsfr_noon - avg_bsfr_morn) / avg_bsfr_morn;
         % Baseline firing rate effect size (Cohen d)
         bsfr_cohen_d = Cohen_D(pertrial_bsfr_morn{1,1}, pertrial_bsfr_noon{1,1});
 
-        % Depth of modulation statistics (Kolmogorov-Smirnov Test)
-        [~, depth_ks_test_morn] = kstest(pertrial_depth_morn{1,1});
-        [~, depth_ks_test_noon] = kstest(pertrial_depth_noon{1,1});
-        % Depth of modulation statistics (Unpaired T-Test)
-        [~, depth_t_test] = ttest2(pertrial_depth_morn{1,1}, pertrial_depth_noon{1,1});
         % Depth of modulation statistics (Wilcoxon rank sum test)
-        [depth_wilcoxon, ~] = ranksum(pertrial_depth_morn{1,1}, pertrial_depth_noon{1,1});
+        [depth_wilcox, ~] = ranksum(pertrial_depth_morn{1,1}, pertrial_depth_noon{1,1});
         % Depth of modulation percent change
         depth_perc = (avg_depth_noon - avg_depth_morn) / avg_depth_morn;
         % Depth of modulation effect size (Cohen d)
@@ -330,24 +310,16 @@ for xx = 1:length(Dates)
         depth_err_noon{xx,1}(cc,1) = err_depth_noon;
 
         % Modulation statistics
-        mod_p_value_t_test_morn{xx,1}(cc,1) = mod_t_test_morn;
-        mod_p_value_wilcoxon_morn{xx,1}(cc,1) = mod_wilcoxon_morn;
-        mod_p_value_t_test_noon{xx,1}(cc,1) = mod_t_test_noon;
-        mod_p_value_wilcoxon_noon{xx,1}(cc,1) = mod_wilcoxon_noon;
+        mod_p_val_morn{xx,1}(cc,1) = mod_wilcox_morn;
+        mod_p_val_noon{xx,1}(cc,1) = mod_wilcox_noon;
 
         % Baseline firing rate statistics
-        bsfr_p_value_ks_test_morn{xx,1}(cc,1) = bsfr_ks_test_morn;
-        bsfr_p_value_ks_test_noon{xx,1}(cc,1) = bsfr_ks_test_noon;
-        bsfr_p_value_t_test{xx,1}(cc,1) = bsfr_t_test;
-        bsfr_p_value_wilcoxon{xx,1}(cc,1) = bsfr_wilcoxon;
+        bsfr_p_val{xx,1}(cc,1) = bsfr_wilcox;
         bsfr_effect_perc{xx,1}(cc,1) = bsfr_perc;
         bsfr_effect_cohen_d{xx,1}(cc,1) = bsfr_cohen_d;
 
         % Depth of modulation statistics
-        depth_p_value_ks_test_morn{xx,1}(cc,1) = depth_ks_test_morn;
-        depth_p_value_ks_test_noon{xx,1}(cc,1) = depth_ks_test_noon;
-        depth_p_value_t_test{xx,1}(cc,1) = depth_t_test;
-        depth_p_value_wilcoxon{xx,1}(cc,1) = depth_wilcoxon;
+        depth_p_val{xx,1}(cc,1) = depth_wilcox;
         depth_effect_perc{xx,1}(cc,1) = depth_perc;
         depth_effect_cohen_d{xx,1}(cc,1) = depth_cohen_d;
 
@@ -358,9 +330,9 @@ for xx = 1:length(Dates)
         wave_peaktopeak{xx,1}(cc,1) = wave_peak_to_peak;
         nonlin_peaktopeak{xx,1}(cc,1) = nonlin_peak_to_peak;
         % Wave shape t-test
-        wave_p_value{xx,1}(cc,1) = wave_sort_metric;
+        wave_p_val{xx,1}(cc,1) = wave_sort_metric;
         % Nonlinear energy t-test
-        nonlin_p_value{xx,1}(cc,1) = nonlin_sort_metric;
+        nonlin_p_val{xx,1}(cc,1) = nonlin_sort_metric;
         % Spike width
         spike_width{xx,1}(cc,1) = wave_spike_width;
         % Repolarization Time
@@ -388,20 +360,12 @@ for xx = 1:length(Dates)
     morn_and_noon.bsfr_err_noon = bsfr_err_noon{xx,1};
     morn_and_noon.depth_err_morn = depth_err_morn{xx,1};
     morn_and_noon.depth_err_noon = depth_err_noon{xx,1};
-    morn_and_noon.bsfr_ks_test_morn = bsfr_p_value_ks_test_morn{xx,1};
-    morn_and_noon.bsfr_ks_test_noon = bsfr_p_value_ks_test_noon{xx,1};
-    morn_and_noon.bsfr_t_test = bsfr_p_value_t_test{xx,1};
-    morn_and_noon.bsfr_wilcoxon = bsfr_p_value_wilcoxon{xx,1};
+    morn_and_noon.bsfr_p_val = bsfr_p_val{xx,1};
     morn_and_noon.bsfr_perc = bsfr_effect_perc{xx,1};
     morn_and_noon.bsfr_cohen_d = bsfr_effect_cohen_d{xx,1};
-    morn_and_noon.mod_t_test_morn = mod_p_value_t_test_morn{xx,1};
-    morn_and_noon.mod_wilcoxon_morn = mod_p_value_wilcoxon_morn{xx,1};
-    morn_and_noon.mod_t_test_noon = mod_p_value_t_test_noon{xx,1};
-    morn_and_noon.mod_wilcoxon_noon = mod_p_value_wilcoxon_noon{xx,1};
-    morn_and_noon.depth_ks_test_morn = depth_p_value_ks_test_morn{xx,1};
-    morn_and_noon.depth_ks_test_noon = depth_p_value_ks_test_noon{xx,1};
-    morn_and_noon.depth_t_test = depth_p_value_t_test{xx,1};
-    morn_and_noon.depth_wilcoxon = depth_p_value_wilcoxon{xx,1};
+    morn_and_noon.mod_p_val_morn = mod_p_val_morn{xx,1};
+    morn_and_noon.mod_p_val_noon = mod_p_val_noon{xx,1};
+    morn_and_noon.depth_p_val = depth_p_val{xx,1};
     morn_and_noon.depth_perc = depth_effect_perc{xx,1};
     morn_and_noon.depth_cohen_d = depth_effect_cohen_d{xx,1};
     morn_and_noon.pref_dir = all_units_pref_dir{xx,1};
@@ -410,10 +374,10 @@ for xx = 1:length(Dates)
     morn_and_noon.post_spike_facil = post_spike_facil{xx,1};
     morn_and_noon.wave_sigtonoise = wave_sigtonoise{xx,1};
     morn_and_noon.wave_peaktopeak = wave_peaktopeak{xx,1};
-    morn_and_noon.wave_p_value = wave_p_value{xx,1};
+    morn_and_noon.wave_p_val = wave_p_val{xx,1};
     morn_and_noon.nonlin_sigtonoise = nonlin_sigtonoise{xx,1};
     morn_and_noon.nonlin_peaktopeak = nonlin_peaktopeak{xx,1};
-    morn_and_noon.nonlin_p_value = nonlin_p_value{xx,1};
+    morn_and_noon.nonlin_p_val = nonlin_p_val{xx,1};
     morn_and_noon.spike_width = spike_width{xx,1};
     morn_and_noon.repol_time = repol_time{xx,1};
     morn_and_noon.fract_contam = fract_contam{xx,1};
@@ -429,7 +393,7 @@ for xx = 1:length(Dates)
 
         % Define the file name
         filename = char(strcat(Dates{xx,1}, '_', Monkey, '_', ...
-            Tasks{xx,1}, '_', Drug_Choice));
+            Tasks{xx,1}, '_', Drug));
 
         % Save the file
         if ~exist(Save_Path, 'dir')

@@ -17,7 +17,8 @@ Excel_Files_In_Path = struct2table(Excel_Files(~([Excel_Files.isdir])));
 
 %% Find the excel files that use the desired drug
 if ~strcmp(Sampling_Params.drug_choice, 'All')
-    Excel_Drugs = find(contains(Excel_Files_In_Path.name, Sampling_Params.drug_choice));
+    Excel_Drugs = intersect(find(contains(Excel_Files_In_Path.name, Sampling_Params.drug_choice)), ...
+        find(~contains(Excel_Files_In_Path.name, '~')));
 else
     Excel_Drugs = (1:length(Excel_Files_In_Path.name));
 end
@@ -26,7 +27,8 @@ end
 if ~strcmp(Monkey{1,1}, 'All')
     for ii = 1:length(Monkey)
         if ii == 1
-            Excel_Monkey = find(contains(Excel_Files_In_Path.name, Monkey{ii}));
+            Excel_Monkey = intersect(find(contains(Excel_Files_In_Path.name, Monkey{ii})), ...
+                find(~contains(Excel_Files_In_Path.name, '~')));
         else
             Excel_Monkey = cat(1,Excel_Monkey, find(contains(Excel_Files_In_Path.name, Monkey{ii})));
         end
@@ -59,11 +61,6 @@ for xx = 1:length(Excel_Choice)
     else
         table_path = strcat(Data_Path, Excel_Files_In_Path.name(Excel_Choice(xx)));
         Excel_File = strrep(char(Excel_Files_In_Path.name(Excel_Choice(xx))), '.xlsx', '');
-    end
-    % Continue if the file is open and unsaved
-    if contains(Excel_Files_In_Path.name(Excel_Choice(xx)), '~')
-        num_variables(end) = [];
-        continue
     end
 
     temp_depth_excel = readtable(char(table_path));
