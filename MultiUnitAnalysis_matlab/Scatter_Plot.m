@@ -68,7 +68,7 @@ end
 %% Some variable extraction & definitions
 
 % Font & plotting specifications
-[Plot_Params] = Plot_Parameters;
+[Plot_Params] = Plot_Specs;
 
 % Scatter Marker Shapes
 single_marker = '.';

@@ -49,11 +49,11 @@ all_unit_names = split_depth_excel{strcmp(column_names, 'unit_names')};
 %% Some variable extraction & definitions
 
 % Font & plotting specifications
-[Plot_Params] = Plot_Parameters;
+[Plot_Params] = Plot_Specs;
 if isequal(plot_legend, 1)
-    n_value_dims = [0.49 0.225 0.44 0.44];
+    n_value_dims = [0.49 0.2 0.44 0.44];
 else
-    n_value_dims = [0.49 0.375 0.44 0.44];
+    n_value_dims = [0.49 0.3 0.44 0.44];
 end
 
 %% Run through each experiment seperately
@@ -202,6 +202,7 @@ for xx = 1:length(all_unit_names)
     xlabel(x_label, 'FontSize', Plot_Params.label_font_size);
 
     % Annotation of the n_value
+    fire_rate_n_val = length(fire_rate_morn{xx,1});
     n_value_string = strcat('n =', {' '}, mat2str(round(fire_rate_n_val, 3)));
     n_value_string = {char(n_value_string)};
     ann_n_value = annotation('textbox', n_value_dims, 'String', n_value_string, ...

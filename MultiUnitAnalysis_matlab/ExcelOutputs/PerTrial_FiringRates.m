@@ -48,6 +48,10 @@ for xx = 1:length(Dates)
         [~, ~, ~, pertrial_bsfr_morn] = BaselineFiringRate(xds_morn, unit_name);
         [~, ~, ~, pertrial_bsfr_noon] = BaselineFiringRate(xds_noon, unit_name);
         % Peak Firing Rates
+        %[pertrial_mpfr_morn, ~] = ...
+        %    EventWindow(xds_morn, unit_name, pref_dir, target_center, event);
+        %[pertrial_mpfr_noon, ~] = ...
+        %    EventWindow(xds_noon, unit_name, pref_dir, target_center, event);
         [pertrial_mpfr_morn, pertrial_mpfr_noon, ~] = ...
             EventWindow_Morn_v_Noon(xds_morn, xds_noon, unit_name, pref_dir, target_center, event);
 

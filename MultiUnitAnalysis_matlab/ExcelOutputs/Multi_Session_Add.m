@@ -1,4 +1,4 @@
-function Multi_Session_Add(Monkey, event, Drug_Choice, Save_Excel)
+function Multi_Session_Add(Monkey, event, Drug, Save_Excel)
 
 %% Display the function being used
 disp('Multi-Experiment Unit Results:');
@@ -8,7 +8,7 @@ disp('Multi-Experiment Unit Results:');
 Save_Path = strcat('C:\Users\rhpow\Documents\Work\Northwestern\Excel_Data\', event, '\Sorted\');
 
 % Load the file information
-[Dates, Tasks, ~] = File_Details(Monkey, Drug_Choice);
+[Dates, Tasks, ~] = File_Details(Monkey, Drug);
 
 %% Loop through the different experiments
 for xx = 1:length(Dates)
@@ -77,7 +77,7 @@ for xx = 1:length(Dates)
 
         % Define the file name
         filename = char(strcat(Dates{xx,1}, '_', Monkey, '_', ...
-            Tasks{xx,1}, '_', Drug_Choice));
+            Tasks{xx,1}, '_', Drug));
 
         % Save the file
         if ~exist(Save_Path, 'dir')

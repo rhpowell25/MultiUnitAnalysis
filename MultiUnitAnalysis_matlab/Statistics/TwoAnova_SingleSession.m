@@ -1,5 +1,5 @@
 
-function [p_value] = OneAnova_SingleSession(Date)
+function [p_value] = TwoAnova_SingleSession(Date)
 
 %% Load the output structure
 
@@ -27,36 +27,43 @@ for ii = 1:length(depth_morn_idxs)
     unit_name = extractAfter(xds_depth_excel.Properties.VariableNames{depth_morn_idxs(ii)}, 'depth_morn_');
     % Morning depth of modulation
     depth_morn = xds_depth_excel{:,depth_morn_idxs(ii)};
-    % Afternoon depth of modulation
+    % Afternoon baseline and movement phase firing rates
     depth_noon_idx = contains(xds_depth_excel.Properties.VariableNames, ...
         strcat('depth_noon_', unit_name));
     depth_noon = xds_depth_excel{:,depth_noon_idx};
     % Calculate the depth of modulation
     depth_morn(isnan(depth_morn)) = [];
     depth_noon(isnan(depth_noon)) = [];
-
+    % Trials
+    temp_morn_trials = 1:length(depth_morn);
+    temp_noon_trials = 1:length(depth_noon);
     % Final columns
     if isequal(ii, 1)
-        depth_Matrix = cat(1,depth_morn,depth_noon);
+        depth_Column = cat(1,depth_morn,depth_noon);
         Time_Column = strings;
         Time_Column(1:length(depth_morn),1) = 'Morning';
-        Time_Column(length(depth_morn)+1:length(depth_Matrix),1) = 'Afternoon';
+        Time_Column(length(depth_morn)+1:length(depth_Column),1) = 'Afternoon';
+        Trial_Column = cat(1, string(temp_morn_trials'), string(temp_noon_trials'));
     else
         temp_depth = cat(1,depth_morn,depth_noon);
-        depth_Matrix = cat(2,depth_Matrix, temp_depth);
-        %temp_time = strings;
-        %temp_time(1:length(depth_morn),1) = 'Morning';
-        %temp_time(length(depth_morn)+1:length(temp_depth),1) = 'Afternoon';
-        %Time_Column = cat(1,Time_Column, temp_time);
+        depth_Column = cat(1,depth_Column, temp_depth);
+        temp_Time = strings;
+        temp_Time(1:length(depth_morn),1) = 'Morning';
+        temp_Time(length(depth_morn)+1:length(temp_depth),1) = 'Afternoon';
+        Time_Column = cat(1,Time_Column, temp_Time);
+        temp_Trial = cat(1, string(temp_morn_trials'), string(temp_noon_trials'));
+        Trial_Column = cat(1, Trial_Column, temp_Trial);
     end
 end
 
 %% Stats
-[rank_depth_Matrix, ~] = tiedrank(depth_Matrix);
+Trial_Column = char(Trial_Column);
+Time_Column = char(Time_Column);
+[rank_depth_Column, ~] = tiedrank(depth_Column);
 
-[p_value, ~, ~] = anova1(rank_depth_Matrix', Time_Column, 'off');
+p_value = anovan(rank_depth_Column, {Trial_Column Time_Column}, 'model', 2, ...
+        'varnames', {'Trial', 'Time'});
 
-%figure
-%hold on
-%[~,~,~,~] = multcompare(stats, "Dimension",[1 2]);
+p_value = p_value(1);
+
 
